@@ -1,6 +1,6 @@
 
 #include <Servo.h>
-
+//comment
 
 int value = 40; // set values you need to zero
 
@@ -16,11 +16,10 @@ void setup() {
 void loop() {
 
 //First connect your ESC WITHOUT Arming. Then Open Serial and follo Instructions
- 
+
   m1.write(value);
- 
-  if(Serial.available()) 
+
+  if(Serial.available())
     value = Serial.parseInt();    // Parse an Integer from Serial
 
 }
-
