@@ -13,9 +13,12 @@ I dont know how i feel about not really knowing whats happening behind the scene
 */
 
 //now the accelerometer part
-const int xAccel = A0;
-const int yAccel = A1;
-const int zAccel = A2;
+//they said const so i wrote constant
+const int xAccInput = A0;
+const int yAccInput = A1;
+const int zAccInput = A2;
+
+//WHICH PINS ARE BEING USED UP by the gyroscope?????
 
 // Raw Ranges:
 /*
@@ -34,7 +37,7 @@ int zRawMax = 512;
 
 // Take multiple samples to reduce noise
 const int sampleSize = 10;
-//we need to introduce a sample rate as well
+
 
 void setup() {
   analogReference(EXTERNAL);
@@ -44,12 +47,17 @@ void setup() {
   //We should think about adding a screen somewhere on the quadcopter to diagnose errors like this
   if (!gyro.begin(gyro.L3DS20_RANGE_250DPS))
   {
-    Serial.println("Oops ... unable to initialize the L3GD20. Check your wiring!");
+    Serial.println("You fucked up the wiring for the gyro...bitch");
     while (1);
   }
+
 }
 
 void loop() {
+  //read accelerometer stuff
+  int xRaw = ReadAxis(xAccInput);
+  int yRaw = ReadAxis(yAccInput);
+  int zRaw = ReadAxis(zAccInput);
 
   // Convert raw values to 'milli-Gs"
   long xScaled = map(xRaw, xRawMin, xRawMax, -1000, 1000);
@@ -74,7 +82,8 @@ void loop() {
 
 
   //now the gyroscope stuff
-  //these should be in deg/s
+  //these should be in deg/s if not we have to convert them
+  //one of us should look
   gyro.read();
   int roll = gyro.data.x;
   int pitch  = gyro.data.y;
@@ -84,7 +93,7 @@ void loop() {
   at this point im not sure if there are delays written into the gyro.read()
   and im not sure how much delays are going to affect our errors
   everything for one 'reading of the sensors and update outout to esc' should happening
-  within 10ms 
+  within 10ms
   */
 
 }
