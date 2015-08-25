@@ -8,7 +8,7 @@ ALSO i added a bunch of comments that probably aren't necessary
 #include <Adafruit_L3GD20.h>
 Adafruit_L3GD20 gyro;
 /*
-we don't need xAccel yAccel and zAccel because we're using the Adafruit_L3GD20 library thing
+we don't need xGyro yGyro and zGyro like in accelerometer because we're using the Adafruit_L3GD20 library thing
 I dont know how i feel about not really knowing whats happening behind the scenes of that sensor
 */
 
@@ -159,7 +159,8 @@ void loop() {
   //sensorVal4= pulseIn(pin4, HIGH);
 
   //for this hover function im going to use sensorval1 as a throttle
-  sensorVal1= map(sensorVal1,channel1Min,channel1Max,1200,2000); //1200 and 2000
+  //1200 and 2000 come from the range we had for the esc before
+  sensorVal1= map(sensorVal1,channel1Min,channel1Max,1200,2000);
   sensorVal1= constrain(sensorval1,1200,2000);
 
   /*
@@ -195,7 +196,7 @@ void loop() {
   //int dt = 10;//
   double deg=zGyro*dt;  //this doesnt actually give anything at this point
 
-  //using a complement filter
+  //using a complementary filter
   double angle = .98*(tiltangle+deg) +.02*pitchAngle;
   // now to "hover" we want our angle to be zero
   double offset =0-angle
