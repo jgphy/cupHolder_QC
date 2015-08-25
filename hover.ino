@@ -38,6 +38,7 @@ int zRawMax = 512;
 // Take multiple samples to reduce noise
 const int sampleSize = 10;
 //we need to introduce a sample rate as well
+int sampleRate= 1000; //one second
 
 
 //Ok now next up is the esc stuff
@@ -51,8 +52,13 @@ int motor1=2, motor2=4, motor3=12, motor4=3;         //pins we're going to use f
 //note:we're not using arduino's analogwrite() which is their built in pwm
 
 //I think we need some Receiver stuff here so i'll add what i think it is
-const int channel1Min= 0
-const int channel1Max=1000 //not real values we need to check what these are
+const int channel1Min= 0;
+const int channel1Max=1000; //not real values we need to check what these are
+
+
+const float pi=3.14159;
+
+unsigned long lastTime;
 
 void setup() {
 
@@ -134,9 +140,9 @@ void loop() {
   //these should be in deg/s if not we have to convert them
   //one of us should look
   gyro.read();
-  int rollAngle = gyro.data.x;
-  int pitchAngle  = gyro.data.y;
-  int yawAngle = gyro.data.z;
+  int xGyro = gyro.data.x;
+  int yGyro  = gyro.data.y;
+  int zGyro = gyro.data.z;
 
   /*
   at this point im not sure if there are delays written into the gyro.read()
@@ -154,7 +160,7 @@ void loop() {
 
   //for this hover function im going to use sensorval1 as a throttle
   sensorVal1= map(sensorVal1,channel1Min,channel1Max,1200,2000); //1200 and 2000
-  sensorVal1= constrain(sensorval1,1200,2000)
+  sensorVal1= constrain(sensorval1,1200,2000);
 
   /*
   at this point we've read every input that we would need
@@ -176,6 +182,27 @@ void loop() {
   which is the PID algorith that im first just going to write as a P algorithm
   but i'll do that tomorrow
   */
+
+
+  //setting up all the stuff that i need to figure out at some point
+  //first need to get angle from accelerometer
+  int tiltangle =0;
+  int pitchAngle = atan2(xAccel,sqrt((yAccel*yAccel)+(zAccel*zAccel))*180.0/pi;
+
+  //you can also get angle by usin the gyroscope
+  //only focusing on one axis at this point
+
+  //int dt = 10;//
+  double deg=zGyro*dt;  //this doesnt actually give anything at this point
+
+  //using a complement filter
+  double angle = .98*(tiltangle+deg) +.02*pitchAngle;
+  // now to "hover" we want our angle to be zero
+  double offset =0-angle
+
+  //these are all calculations that have to be done but im not quite sure how to
+  //arrange all of them exactly
+
 
 
 
