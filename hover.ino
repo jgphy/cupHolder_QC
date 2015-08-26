@@ -38,7 +38,7 @@ int zRawMax = 512;
 // Take multiple samples to reduce noise
 const int sampleSize = 10;
 //we need to introduce a sample rate as well
-int sampleRate= 1000; //one second
+int sampleRate=10 //ms
 
 
 //Ok now next up is the esc stuff
@@ -58,7 +58,10 @@ const int channel1Max=1000; //not real values we need to check what these are
 
 const float pi=3.14159;
 
-unsigned long lastTime;
+unsigned long lastTime=0;
+double Output;
+double errSum, lastErr;
+double kp=1, ki=1, kd=1;
 
 void setup() {
 
@@ -105,104 +108,124 @@ void setup() {
 }
 
 void loop() {
-  //read accelerometer stuff
-  int xRaw = ReadAxis(xAccInput);
-  int yRaw = ReadAxis(yAccInput);
-  int zRaw = ReadAxis(zAccInput);
+  int hoverAngle =0
+  unsigned long now;
+  int timeChange = now - lastTime;
 
-  // Convert raw values to 'milli-Gs"
-  long xScaled = map(xRaw, xRawMin, xRawMax, -1000, 1000);
-  //might have to change this -1000 to 1000 cause i don't think its actually going to give us G's
-  //actually i don't think it'll matter, but it's late at this point
-  long yScaled = map(yRaw, yRawMin, yRawMax, -1000, 1000);
-  long zScaled = map(zRaw, zRawMin, zRawMax, -1000, 1000);
-  /*
-  map is a built in function map(value, fromLow, fromHigh, toLow, toHigh)
-  you guys can look it up but essentially remaps a value xRaw that is within some
-  range [xRawMin,xRawMax and scales it to another range [-1000,1000]
-  note: im going to use this later (attempt to) on for the receiver input to the output going
-  into the esc's , but i think theres a function constraint() that we should also
-  use if i want to do that
-  */
-  // re-scale to fractional Gs
-  float xAccel = xScaled / 1000.0;
-  float yAccel = yScaled / 1000.0;
-  float zAccel = zScaled / 1000.0;
-  /*
-  these values are scaled so their in 'g' units to get m/s^2 we'd have to divide
-  by 9.8...i think, i need a little bit more tome
-  xAccel=xAccel/9.8
-  yAccel=yAccel/9.8
-  zAccel=zAccel/9.8
-  */
+  if(timeChange >=sampleRate)
+  {
+    //read accelerometer stuff
+    int xRaw = ReadAxis(xAccInput);
+    int yRaw = ReadAxis(yAccInput);
+    int zRaw = ReadAxis(zAccInput);
 
-  //now the gyroscope stuff
-  //these should be in deg/s if not we have to convert them
-  //one of us should look
-  gyro.read();
-  int xGyro = gyro.data.x;
-  int yGyro  = gyro.data.y;
-  int zGyro = gyro.data.z;
+    // Convert raw values to 'milli-Gs"
+    long xScaled = map(xRaw, xRawMin, xRawMax, -1000, 1000);
+    //might have to change this -1000 to 1000 cause i don't think its actually going to give us G's
+    //actually i don't think it'll matter, but it's late at this point
+    long yScaled = map(yRaw, yRawMin, yRawMax, -1000, 1000);
+    long zScaled = map(zRaw, zRawMin, zRawMax, -1000, 1000);
+    /*
+    map is a built in function map(value, fromLow, fromHigh, toLow, toHigh)
+    you guys can look it up but essentially remaps a value xRaw that is within some
+    range [xRawMin,xRawMax and scales it to another range [-1000,1000]
+    note: im going to use this later (attempt to) on for the receiver input to the output going
+    into the esc's , but i think theres a function constraint() that we should also
+    use if i want to do that
+    */
+    // re-scale to fractional Gs
+    float xAccel = xScaled / 1000.0;
+    float yAccel = yScaled / 1000.0;
+    float zAccel = zScaled / 1000.0;
+    /*
+    these values are scaled so their in 'g' units to get m/s^2 we'd have to divide
+    by 9.8...i think, i need a little bit more tome
+    xAccel=xAccel/9.8
+    yAccel=yAccel/9.8
+    zAccel=zAccel/9.8
+    */
 
-  /*
-  at this point im not sure if there are delays written into the gyro.read()
-  and im not sure how much delays are going to affect our errors
-  everything for one 'reading of the sensors and update outout to esc' should happening
-  within 10ms
-  */
+    //now the gyroscope stuff
+    //these should be in deg/s if not we have to convert them
+    //one of us should look
+    gyro.read();
+    int xGyro = gyro.data.x;
+    int yGyro  = gyro.data.y;
+    int zGyro = gyro.data.z;
 
-  int sensorVal1, sensorVal2, sensorVal3,sensorVal4;  //why were these started in loop()
-  //int sensorConvert1, sensorConvert2, sensorConvert3, sensorConvert4; dont think i need these anymore
-  sensorVal1= pulseIn(pin3,HIGH);
-  //sensorVal2= pulseIn(pin2, HIGH);
-  //sensorVal3= pulseIn(pin3, HIGH);
-  //sensorVal4= pulseIn(pin4, HIGH);
+    /*
+    at this point im not sure if there are delays written into the gyro.read()
+    and im not sure how much delays are going to affect our errors
+    everything for one 'reading of the sensors and update outout to esc' should happening
+    within 10ms
+    */
 
-  //for this hover function im going to use sensorval1 as a throttle
-  //1200 and 2000 come from the range we had for the esc before
-  sensorVal1= map(sensorVal1,channel1Min,channel1Max,1200,2000);
-  sensorVal1= constrain(sensorval1,1200,2000);
+    int sensorVal1, sensorVal2, sensorVal3,sensorVal4;  //why were these started in loop()
+    //int sensorConvert1, sensorConvert2, sensorConvert3, sensorConvert4; dont think i need these anymore
+    sensorVal1= pulseIn(pin3,HIGH);
+    sensorVal2= pulseIn(pin2, HIGH);
+    //sensorVal3= pulseIn(pin3, HIGH);
+    //sensorVal4= pulseIn(pin4, HIGH);
 
-  /*
-  at this point we've read every input that we would need
-  it doesnt seem so bad right now, but im a bit worried about the delays that
-  we're introducing when we actually do outputs to the esc's
-  There are several things i have questions about in my head
+    //for this hover function im going to use sensorval1 as a throttle
+    //1200 and 2000 come from the range we had for the esc before
+    sensorVal3= map(sensorVal1,channel1Min,channel1Max,1200,2000);
+    sensorVal1= constrain(sensorval1,1200,2000);
+    kp= sensorVal2;
+    kp=map(kp,600,1000,.25,1.5);
 
-  for now im just going to work with two motors and try to balance them
+    /*
+    at this point we've read every input that we would need
+    it doesnt seem so bad right now, but im a bit worried about the delays that
+    we're introducing when we actually do outputs to the esc's
+    There are several things i have questions about in my head
 
-  as a first attemp what im going to do is  say that both of the motors should throttle
-  to whatever its receiving and then that one of them should go faster or slower
-  deping on the orientation
+    for now im just going to work with two motors and try to balance them
 
-  later on what we should do is either have an altitude sensor so we can set
-  which motor goes faster or slower depends on which action wilk keep the quadcopter
-  at the same height
-  first thing to do is to use the accelerometer and gyroscope to get an orientation
-  the second thing to do is use that orientation and change the ouput of one of the motors
-  which is the PID algorith that im first just going to write as a P algorithm
-  but i'll do that tomorrow
-  */
+    as a first attemp what im going to do is  say that both of the motors should throttle
+    to whatever its receiving and then that one of them should go faster or slower
+    deping on the orientation
+
+    later on what we should do is either have an altitude sensor so we can set
+    which motor goes faster or slower depends on which action wilk keep the quadcopter
+    at the same height
+    first thing to do is to use the accelerometer and gyroscope to get an orientation
+    the second thing to do is use that orientation and change the ouput of one of the motors
+    which is the PID algorith that im first just going to write as a P algorithm
+    but i'll do that tomorrow
+    */
 
 
-  //setting up all the stuff that i need to figure out at some point
-  //first need to get angle from accelerometer
-  int tiltangle =0;
-  int pitchAngle = atan2(xAccel,sqrt((yAccel*yAccel)+(zAccel*zAccel))*180.0/pi;
+    //setting up all the stuff that i need to figure out at some point
+    //first need to get angle from accelerometer
+    int tiltangle =0;
+    int pitchAngle = atan2(xAccel,sqrt((yAccel*yAccel)+(zAccel*zAccel))*180.0/pi;
 
-  //you can also get angle by usin the gyroscope
-  //only focusing on one axis at this point
+    //you can also get angle by usin the gyroscope
+    //only focusing on one axis at this point
 
-  //int dt = 10;//
-  double deg=zGyro*dt;  //this doesnt actually give anything at this point
+    //int dt = 10;//
+     deg=zGyro*dt;  //this doesnt actually give anything at this point
 
-  //using a complementary filter
-  double angle = .98*(tiltangle+deg) +.02*pitchAngle;
-  // now to "hover" we want our angle to be zero
-  double offset =0-angle
+    //using a complementary filter
+    double angle = .98*(tiltangle+deg) +.02*pitchAngle;
+    // now to "hover" we want our angle to be zero
+    double error =hoverAngle-angle; //error
+    errSum += error;                //sum of the errors, going to be used with the Integral part of the PID algorithm
+    double dErr = (error - lastErr);//diff of errors, going to be used with the derivative part
+    Output = kp * error// + ki * errSum*sampleRate + kd * dErr/sampleRate;
+    lastErr = error;
+    lastTime = now;
 
-  //these are all calculations that have to be done but im not quite sure how to
-  //arrange all of them exactly
+
+
+    //these are all calculations that have to be done but im not quite sure how to
+    //arrange all of them exactly
+
+  }
+
+
+
 
 
 
