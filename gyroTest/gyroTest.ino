@@ -1,9 +1,16 @@
+#include <Wire.h>
+
+#include <Adafruit_L3GD20.h>
+
 /*
 this is all using some library that we might want to look into so we know
 whats really happening...or not
 */
-#include <Adafruit_L3GD20.h>
 
+int dt = 10;
+float deg = 0;
+float y;
+float offset = 2.35;
 
 // No need to specify pins for I2C
 Adafruit_L3GD20 gyro;
@@ -22,9 +29,21 @@ void setup()
 
 void loop()
 {
-  gyro.read();
-  Serial.print("X: "); Serial.print((int)gyro.data.x);   Serial.print(" ");
-  Serial.print("Y: "); Serial.print((int)gyro.data.y);   Serial.print(" ");
-  Serial.print("Z: "); Serial.println((int)gyro.data.z); Serial.print(" ");
+  if (millis() >= dt)
+  {
+    gyro.read();
+    y = gyro.data.y - offset;
+    //if((y > 2.6) || (y < 0)) 
+    deg += y * dt;
+    
+    //Serial.print("THETA: "); Serial.println(deg/100);
+    //Serial.print("Y: "); Serial.println(y);
+    Serial.print(gyro.data.x);
+    Serial.print(y);
+    Serial.println(gyro.data.z);
+  }
+
+  
+  
   delay(100);
 }

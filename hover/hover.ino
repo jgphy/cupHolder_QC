@@ -26,14 +26,14 @@ need to callibrate acccelerometer first using accelCalibration.ino then write do
 these values so that we dont have to callibrate it every time
 THESE values are temporary unti we get the actual values
 */
-int xRawMin = 512;
-int xRawMax = 512;
-                    //Remember to change these!
-int yRawMin = 512;
-int yRawMax = 512;
+int xRawMin = 404;
+int xRawMax = 610;
 
-int zRawMin = 512;
-int zRawMax = 512;
+int yRawMin = 401;
+int yRawMax = 609;
+
+int zRawMin = 418;
+int zRawMax = 630;
 
 // Take multiple samples to reduce noise
 const int sampleSize = 10;

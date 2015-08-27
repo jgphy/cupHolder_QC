@@ -1,3 +1,5 @@
+#include <math.h>
+
 const int xInput = A0;
 const int yInput = A1;
 const int zInput = A2;
@@ -15,8 +17,10 @@ int yRawMax = 512;
 int zRawMin = 512;
 int zRawMax = 512;
 
-// Take multiple samples to reduce noise
+// Take multiple samples to reduce noised
 const int sampleSize = 10;  //ReadAxis() uses this
+float pi = 3.14159;
+
 
 void setup()
 {
@@ -37,6 +41,7 @@ void loop()
   }
   else
   {
+    
     Serial.print("Raw Ranges: X: ");
     Serial.print(xRawMin);
     Serial.print("-");
@@ -68,6 +73,12 @@ void loop()
     float yAccel = yScaled / 1000.0;
     float zAccel = zScaled / 1000.0;
 
+    float pitchAngle = atan(xAccel / sqrt((yAccel * yAccel) + (zAccel * zAccel)));
+
+    float finalAngle = pitchAngle * 180 / pi;
+    Serial.print(" angle: ");
+    Serial.println(finalAngle);
+    
     Serial.print(" :: ");
     Serial.print(xAccel);
     Serial.print("G, ");
