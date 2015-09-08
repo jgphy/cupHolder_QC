@@ -188,7 +188,7 @@ void loop() {
   //setting up all the stuff that i need to figure out at some point
   //first need to get angle from accelerometer
   int tiltangle =0;
-  int pitchAngle = atan2(xAccel,sqrt((yAccel*yAccel)+(zAccel*zAccel))*180.0/pi;
+  int pitchAngle = atan2(xAccel,sqrt((yAccel*yAccel)+(zAccel*zAccel)) * RAD_TO_DEG;
 
   //you can also get angle by usin the gyroscope
   //only focusing on one axis at this point
@@ -232,3 +232,45 @@ int ReadAxis(int axisPin)
   }
   return reading/sampleSize; //returns an average
 }
+
+float error = 0;
+
+float gyroBias = 0.003;
+float accelVar = 0.001;
+float P [2][2] = {{1000., 0.}, {0., 1000.}}; //# initial uncertainty
+float R = 0.03;//# measurement uncertainty
+float K [2] = {0, 0};
+float S;
+
+float rate = 0;
+
+void kalman(float &accelIn, float &gyroIn, float &angle)
+{
+
+    rate = gyroIn - gyroBias;
+    angle += dt * rate;
+
+    P[0][0] += dt * (dt*P[1][1] - P[0][1] - P[1][0] + accelVar);
+    P[0][1] -= dt * P[1][1];
+    P[1][0] -= dt * P[1][1];
+    P[1][1] += gyroBias * dt;
+
+    error = accelIn - angle;
+
+    S = P[0][0] + R;
+
+    K[0] = P[0][0] / S;
+    K[1] = P[1][0] / S;
+
+    angle += K[0] * error;
+    gyroBias += K[1] * error;
+
+    float P00_temp = P[0][0];
+    float P01_temp = P[0][1];
+
+    P[0][0] -= K[0] * P00_temp;
+    P[0][1] -= K[0] * P01_temp;
+    P[1][0] -= K[1] * P00_temp;
+    P[1][1] -= K[1] * P01_temp;
+}
+
