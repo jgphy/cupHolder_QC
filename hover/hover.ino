@@ -1,3 +1,5 @@
+#include <Wire.h>
+
 /*
 Most of this stuff is just combining the accelerometer and gyroscope stuff that
 we found online, i'll comment where i added stuff
@@ -34,13 +36,14 @@ int yRawMax = 609;
 
 int zRawMin = 418;
 int zRawMax = 630;
+int dt = 10;//
 
 // Take multiple samples to reduce noise
 const int sampleSize = 10;
 //we need to introduce a sample rate as well
 int sampleRate= 1000; //one second
 
-
+int Pulse=1100;
 //Ok now next up is the esc stuff
 int STATE=1;
 int Arming_Time=0;
@@ -161,7 +164,7 @@ void loop() {
   //for this hover function im going to use sensorval1 as a throttle
   //1200 and 2000 come from the range we had for the esc before
   sensorVal1= map(sensorVal1,channel1Min,channel1Max,1200,2000);
-  sensorVal1= constrain(sensorval1,1200,2000);
+  sensorVal1= constrain(sensorVal1,1200,2000);
 
   /*
   at this point we've read every input that we would need
@@ -188,37 +191,25 @@ void loop() {
   //setting up all the stuff that i need to figure out at some point
   //first need to get angle from accelerometer
   int tiltangle =0;
-  int pitchAngle = atan2(xAccel,sqrt((yAccel*yAccel)+(zAccel*zAccel)) * RAD_TO_DEG;
+  int pitchAngle = atan2(xAccel,sqrt((yAccel*yAccel)+(zAccel*zAccel))) * RAD_TO_DEG;
 
   //you can also get angle by usin the gyroscope
   //only focusing on one axis at this point
 
-  //int dt = 10;//
-  double deg=zGyro*dt;  //this doesnt actually give anything at this point
+  dt = 10;//
+  double deg=zGyro * dt;  //this doesnt actually give anything at this point
 
   //using a complementary filter
   double angle = .98*(tiltangle+deg) +.02*pitchAngle;
   // now to "hover" we want our angle to be zero
-  double offset =0-angle
+  double offset =0-angle;
 
   //these are all calculations that have to be done but im not quite sure how to
   //arrange all of them exactly
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 }
+
+
 //this read axis just gets 10 readings from the accelerometer then takes the average
 //to get something more accurare
 int ReadAxis(int axisPin)
