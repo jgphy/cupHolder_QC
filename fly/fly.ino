@@ -210,13 +210,13 @@ void loop() {
     //setting up all the stuff that i need to figure out at some point
     //first need to get angle from accelerometer
     int tiltangle =0;
-    int pitchAngle = atan2(xAccel,sqrt((yAccel*yAccel)+(zAccel*zAccel))*180.0/pi;
+    int pitchAngle = atan2(xAccel,sqrt((yAccel*yAccel)+(zAccel*zAccel)))*180.0/pi;
 
     //you can also get angle by usin the gyroscope
     //only focusing on one axis at this point
 
     //int dt = 10;//
-     deg=zGyro*dt;  //this doesnt actually give anything at this point
+    deg=zGyro*dt;  //this doesnt actually give anything at this point
 
     //using a complementary filter
     double angle = .98*(tiltangle+deg) +.02*pitchAngle;
