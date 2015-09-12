@@ -173,7 +173,7 @@ void loop() {
     sensorVal1= constrain(sensorVal1,1200,2000);
 
     sensorVal2= map(sensorVal2,channel1Min,channel1Max,1200,2000);
-    sensorVal2= constrain(sensorVal2,1200,2000);2
+    sensorVal2= constrain(sensorVal2,1200,2000);
 
     sensorVal3= map(sensorVal3,channel1Min,channel1Max,1200,2000);
     sensorVal3= constrain(sensorVal3,1200,2000);
