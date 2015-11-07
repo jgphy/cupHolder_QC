@@ -11,6 +11,9 @@ Adafruit_L3GD20 gyro;
 we don't need xGyro yGyro and zGyro like in accelerometer because we're using the Adafruit_L3GD20 library thing
 I dont know how i feel about not really knowing whats happening behind the scenes of that sensor
 */
+
+//Declaring Pulse
+int Pulse = 1100;
 //Creating a global variable to keep track of the previous sensor value
 //We will use this to compare with the new value and only add the change to
 //the motor
@@ -176,7 +179,7 @@ void loop() {
     //sensorVal3 is thrust for all motors, sensorVal1 is left/right, sensorVal2 is forward/back, sensorVal4 yaw
     double sensorVal1, sensorVal2, sensorVal3,sensorVal4;  //why were these started in loop()
     //int sensorConvert1, sensorConvert2, sensorConvert3, sensorConvert4; dont think i need these anymore
-    sensorVal1= pulseIn(pin1,HIGH);
+    sensorVal1= pulseIn(pin,HIGH);
     sensorVal2= pulseIn(pin2, HIGH);
     sensorVal3= pulseIn(pin3, HIGH);
     sensorVal4= pulseIn(pin4, HIGH);
@@ -225,12 +228,13 @@ void loop() {
     //first need to get angle from accelerometer
     int tiltangle =0;
     int pitchAngle = atan2(xAccel,sqrt((yAccel*yAccel)+(zAccel*zAccel)))*180.0/pi;
+    int rollAngle = atan2(-xAccel,zAccel)*180.0/pi;
 
     //you can also get angle by usin the gyroscope
     //only focusing on one axis at this point
 
-    //int dt = 10;//
-    deg=zGyro*dt;  //this doesnt actually give anything at this point
+    int dt = 10;//
+    double deg=zGyro*dt;  //this doesnt actually give anything at this point
 
     //using a complementary filter
     double angle = .98*(tiltangle+deg) +.02*pitchAngle;
@@ -280,7 +284,7 @@ M_n=L X T_n where L is distance from the center of mass (theoretically the cente
     double yawIn = sensorVal4;
     double rollIn = sensorVal2;
     double pitchIn = sensorVal1;
-    double trottleIn = sensorVal3;
+    double throttleIn = sensorVal3;
 
 /*
 hover:
@@ -297,7 +301,7 @@ note that T is proportional to w^2
 
 up and down(elevation on the z-axis):
 */
-if(math.abs(throttleIn - oldSensorVal3) > minChange)
+if(abs(throttleIn - oldSensorVal3) > minChange)
   {
     if((w_1 + (throttleIn/4)) > 2000)
     {
@@ -337,7 +341,7 @@ this shouldnt make the quadcopter change its position in space, just where the '
 //sensorVal4 is mapped to (-800,800);
 //If statements check if the input pushes the value over 2000 or under 1200, If so we take the amount it took to reach the
 //threshold and add or subtract it from the other, non excessive, value
-if(math.abs(yawIn - oldSensorVal4) > minChange)
+if(abs(yawIn - oldSensorVal4) > minChange)
   {
     if(w_1 + (yawIn)/2 > 2000)
       {
@@ -353,8 +357,8 @@ if(math.abs(yawIn - oldSensorVal4) > minChange)
       {
         double tempMin = w_2 - (yawIn)/2;
         double newVal2 = 1200 - tempMin;
-        w_1 += newVal;
-        w_3 += newVal;
+        w_1 += newVal2;
+        w_3 += newVal2;
         w_2 = 1200;
         w_4 = 1200;
 
@@ -386,7 +390,7 @@ We want the qc to stay at the same height so we actually have to adjust this Lif
 by some factor that i'll figure out later
 Torque might be off by a sqrt of something - Juan
 */
-if(math.abs(rollIn - oldSensorVal2) > minChange)
+if(abs(rollIn - oldSensorVal2) > minChange)
   {
     if(w_1 + (rollIn)/2 > 2000)
     {
@@ -409,8 +413,8 @@ if(math.abs(rollIn - oldSensorVal2) > minChange)
     }
     else
     {
-      w_1 += (roolIn)/2;
-      w_4 += (roolIn)/2;
+      w_1 += (rollIn)/2;
+      w_4 += (rollIn)/2;
       w_2 -= (rollIn)/2;
       w_3 -= (rollIn)/2;
 
@@ -437,12 +441,12 @@ F/B  T=T*sin(pitchAngle)
 and we want lift T=mg so that it stays at the same height so again w_n will have to be modified
 */
 
-if(math.abs(pitchIn - oldSensorVal1) > minChange)
+if(abs(pitchIn - oldSensorVal1) > minChange)
 {
   if(w_1 + (pitchIn)/2 > 2000)
     {
       double tempMax = w_1 + (pitchIn)/2;
-      newVal = tempMax-2000;
+      double newVal = tempMax-2000;
       w_1 = 2000;
       w_2 = 2000;
       w_3 -= newVal;
@@ -451,9 +455,9 @@ if(math.abs(pitchIn - oldSensorVal1) > minChange)
   else if(w_2 - (pitchIn)/2 < 1200)
     {
       double tempMin = w_2 - (pitchIn)/2;
-      newVal2 = 1200 - tempMin;
-      w_1 += newVal;
-      w_2 += newVal;
+      double newVal2 = 1200 - tempMin;
+      w_1 += newVal2;
+      w_2 += newVal2;
       w_3 = 1200;
       w_4 = 1200;
     }
@@ -491,25 +495,25 @@ also if you guys have questions about dynamics things you should add it to this,
 potentially explain them better.
 */
 
+digitalWrite(motor1,HIGH);
+delayMicroseconds(w_1);
+digitalWrite(motor1,LOW);
+
+
+digitalWrite(motor2,HIGH);
+delayMicroseconds(w_2);
+digitalWrite(motor2,LOW);
+
+digitalWrite(motor3,HIGH);
+delayMicroseconds(w_3);
+digitalWrite(motor3,LOW);
+
+digitalWrite(motor4,HIGH);
+delayMicroseconds(w_4);
+digitalWrite(motor4,LOW);
+
   }
   //Writing to all the motors before the loop finishes
-
-  digitalWrite(motor1,HIGH);
-  delayMicroseconds(w_1);
-  digitalWrite(motor,LOW);
-
-
-  digitalWrite(motor2,HIGH);
-  delayMicroseconds(w_2);
-  digitalWrite(pin2,LOW);
-
-  digitalWrite(motor3,HIGH);
-  delayMicroseconds(w_3);
-  digitalWrite(motor3,LOW);
-
-  digitalWrite(motor4,HIGH);
-  delayMicroseconds(w_4);
-  digitalWrite(motor4,LOW);
 
 }
 //this read axis just gets 10 readings from the accelerometer then takes the average
@@ -526,7 +530,7 @@ int ReadAxis(int axisPin)
   return reading/sampleSize; //returns an average
 }
 
-double calculateTorque()
+double calculateTorque(double w_1, double w_2, double w_3, double w_4, double pitchAngle, double rollAngle)
 {
   double torque = ((w_1 * w_1 + w_2 * w_2 + w_3 * w_3 + w_4 * w_4) * cos(pitchAngle)) * cos(rollAngle);
   return torque;
