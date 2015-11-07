@@ -50,7 +50,7 @@ int zRawMax = 512;
 // Take multiple samples to reduce noise
 const int sampleSize = 10;
 //we need to introduce a sample rate as well
-int sampleRate=10 //ms
+int sampleRate=10; //ms
 
 
 //Ok now next up is the esc stuff
@@ -70,7 +70,8 @@ const int channel1Max=1000; //not real values we need to check what these are
 
 const float pi=3.14159;
 
-unsigned long lastTime=0;
+unsigned long lastTime = 0;
+unsigned long now;
 double Output;
 double errSum, lastErr;
 double kp=1, ki=1, kd=1;
@@ -120,8 +121,8 @@ void setup() {
 }
 
 void loop() {
-  int hoverAngle =0
-  unsigned long now;
+  now = millis();
+  int hoverAngle = 0;
   int timeChange = now - lastTime;
 
   if(timeChange >=sampleRate)
@@ -237,7 +238,7 @@ void loop() {
     double error =hoverAngle-angle; //error
     errSum += error;                //sum of the errors, going to be used with the Integral part of the PID algorithm
     double dErr = (error - lastErr);//diff of errors, going to be used with the derivative part
-    Output = kp * error// + ki * errSum*sampleRate + kd * dErr/sampleRate;
+    Output = kp * error; // + ki * errSum*sampleRate + kd * dErr/sampleRate;
     lastErr = error;
     lastTime = now;
 
@@ -318,6 +319,7 @@ if(math.abs(throttleIn - oldSensorVal3) > minChange)
       w_2 += throttleIn/4;
       w_3 += throttleIn/4;
       w_4 += throttleIn/4;
+
     }
   }
 /*
@@ -340,20 +342,22 @@ if(math.abs(yawIn - oldSensorVal4) > minChange)
     if(w_1 + (yawIn)/2 > 2000)
       {
         double tempMax = w_1 + (yawIn)/2;
-        newVal = tempMax-2000;
+        double newVal = tempMax-2000;
         w_1 = 2000;
         w_3 = 2000;
         w_2 -= newVal;
         w_4 -= newVal;
+
       }
     else if(w_2 - (yawIn)/2 < 1200)
       {
         double tempMin = w_2 - (yawIn)/2;
-        newVal2 = 1200 - tempMin;
+        double newVal2 = 1200 - tempMin;
         w_1 += newVal;
         w_3 += newVal;
         w_2 = 1200;
         w_4 = 1200;
+
       }
     else
       {
@@ -361,6 +365,7 @@ if(math.abs(yawIn - oldSensorVal4) > minChange)
         w_3 += (yawIn)/2;
         w_2 -= (yawIn)/2;
         w_4 -= (yawIn)/2;
+
       }
   }
 /*
@@ -386,7 +391,7 @@ if(math.abs(rollIn - oldSensorVal2) > minChange)
     if(w_1 + (rollIn)/2 > 2000)
     {
       double tempMax = w_1 + (rollIn)/2;
-      newVal = tempMax-2000;
+      double newVal = tempMax-2000;
       w_1 = 2000;
       w_4 = 2000;
       w_2 -= newVal;
@@ -395,11 +400,12 @@ if(math.abs(rollIn - oldSensorVal2) > minChange)
     else if(w_2 - (rollIn)/2 < 1200)
     {
       double tempMin = w_2 - (rollIn)/2;
-      newVal2 = 1200 - tempMin;
-      w_1 += newVal;
-      w_4 += newVal;
+      double newVal2 = 1200 - tempMin;
+      w_1 += newVal2;
+      w_4 += newVal2;
       w_2 = 1200;
       w_3 = 1200;
+
     }
     else
     {
@@ -407,6 +413,7 @@ if(math.abs(rollIn - oldSensorVal2) > minChange)
       w_4 += (roolIn)/2;
       w_2 -= (rollIn)/2;
       w_3 -= (rollIn)/2;
+
     }
     double newT = ((w_1 * w_1 + w_2 * w_2 + w_3 * w_3 + w_4 * w_4) * cos(rollAngle)) * cos(pitchAngle);
     double offsetT = 1 - newT;
@@ -414,6 +421,7 @@ if(math.abs(rollIn - oldSensorVal2) > minChange)
     w_2 += offsetT/4;
     w_3 += offsetT/4;
     w_4 += offsetT/4;
+
   }
 
 /*
@@ -457,11 +465,11 @@ if(math.abs(pitchIn - oldSensorVal1) > minChange)
       w_4 -= (pitchIn)/2;
     }
     double newPitchT = ((w_1 * w_1 + w_2 * w_2 + w_3 * w_3 + w_4 * w_4) * cos(rollAngle)) * cos(pitchAngle);
-    double offsetT = 1 - newPitchT;
-    w_1 += offsetT/4;
-    w_2 += offsetT/4;
-    w_3 += offsetT/4;
-    w_4 += offsetT/4;
+    double offsetPT = 1 - newPitchT;
+    w_1 += offsetPT/4;
+    w_2 += offsetPT/4;
+    w_3 += offsetPT/4;
+    w_4 += offsetPT/4;
 }
 
 //saving old sensor vals;
@@ -484,6 +492,24 @@ potentially explain them better.
 */
 
   }
+  //Writing to all the motors before the loop finishes
+
+  digitalWrite(motor1,HIGH);
+  delayMicroseconds(w_1);
+  digitalWrite(motor,LOW);
+
+
+  digitalWrite(motor2,HIGH);
+  delayMicroseconds(w_2);
+  digitalWrite(pin2,LOW);
+
+  digitalWrite(motor3,HIGH);
+  delayMicroseconds(w_3);
+  digitalWrite(motor3,LOW);
+
+  digitalWrite(motor4,HIGH);
+  delayMicroseconds(w_4);
+  digitalWrite(motor4,LOW);
 
 }
 //this read axis just gets 10 readings from the accelerometer then takes the average
