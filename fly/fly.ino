@@ -163,7 +163,7 @@ void loop() {
     //sensorVal3 is thrust for all motors, sensorVal1 is left/right, sensorVal2 is forward/back, sensorVal4 yaw
     int sensorVal1, sensorVal2, sensorVal3,sensorVal4;  //why were these started in loop()
     //int sensorConvert1, sensorConvert2, sensorConvert3, sensorConvert4; dont think i need these anymore
-    sensorVal1= pulseIn(pin3,HIGH);
+    sensorVal1= pulseIn(pin1,HIGH);
     sensorVal2= pulseIn(pin2, HIGH);
     sensorVal3= pulseIn(pin3, HIGH);
     sensorVal4= pulseIn(pin4, HIGH);
@@ -265,6 +265,8 @@ M_n=L X T_n where L is distance from the center of mass (theoretically the cente
     double T_4 = sensorVal3 * sensorVal3;
     double T = T_1 + T_2 + T_3 + T_4;
     double yawIn = sensorVal4;
+    double rollIn = sensorVal2;
+    double pitchIn = sensorVal1;
 
 /*
 hover:
@@ -294,36 +296,39 @@ this shouldnt make the quadcopter change its position in space, just where the '
 //sensorVal4 is mapped to (-800,800);
 //If statements check if the input pushes the value over 2000 or under 1200, If so we take the amount it took to reach the
 //threshold and add or subtract it from the other, non excessive, value
-    if(w_1 + (sensorVal4)/2 > 2000)
+    if(w_1 + (yawIn)/2 > 2000)
       {
-        double tempMax = w_1 + (sensorVal4)/2;
+        double tempMax = w_1 + (yawIn)/2;
         newVal = tempMax-2000;
         w_1 = 2000;
         w_3 = 2000;
         w_2 -= newVal;
         w_4 -= newVal;
       }
-    if(w_2 - (sensorVal4)/2 < 1200)
+    else if(w_2 - (yawIn)/2 < 1200)
       {
-        double tempMin = w_2 - (sensorVal4)/2;
+        double tempMin = w_2 - (yawIn)/2;
         newVal2 = 1200 - tempMin;
         w_1 += newVal;
         w_3 += newVal;
         w_2 = 1200;
         w_4 = 1200;
       }
-    w_1 += (sensorVal4)/2;
-    w_3 += (sensorVal4)/2;
-    w_2 -= (sensorVal4)/2;
-    w_4 -= (sensorVal4)/2;
+    else
+      {
+        w_1 += (yawIn)/2;
+        w_3 += (yawIn)/2;
+        w_2 -= (yawIn)/2;
+        w_4 -= (yawIn)/2;
+      }
 
 /*
 Now the slightly more complicated part
 
 roll motion(moving left and right):
 This is also achived by changing condition 4 in 'hover' but in a different way
-this time the unbalance will be sucht that (|w_1| +|w_4|) - (|w_2| +|w_3|) !=0
-similar to yaw motion rotation about the y axis ie tilting(roll_dot) the qc left and right and be proportional to (|w_1| +|w_4|) - (|w_2| +|w_3|) !=0
+this time the imbalance will be such that (|w_1| +|w_4|) - (|w_2| +|w_3|) !=0
+similar to yaw motion rotation about the y axis ie tilting(8uj8u) the qc left and right and be proportional to (|w_1| +|w_4|) - (|w_2| +|w_3|) !=0
 Note:
 rollAngle=roll_dot*changeInTime
 condition 3,4 in 'hover' still hold
@@ -331,9 +336,47 @@ condition 2 in 'hover' is no longer true
 what this means is that the T are now going to be decomposed into a component in the +/- z direction  and a component in the +/- x direction
 lift T=T*cos(rollAngle)
 L/R  T=T*sin(rollAngle)
-We want the the qc to stay at the same height so we actually have to adjust this Lift T s.t lift T=T*cos(phi)=mg so w_n will have to be increased
+We want the qc to stay at the same height so we actually have to adjust this Lift T s.t lift T=T*cos(phi)=mg so w_n will have to be increased
 by some factor that i'll figure out later
+//THOUGHTS: If we constantly feed the sensor val to the motors will it continue to roll even if we only want it to keep moving to the left
+//with a constant angular acceleration
+//add 1-lift to each motor
+*/
 
+if(w_1 + (pitchIn)/2 > 2000)
+  {
+    double tempMax = w_1 + (pitchIn)/2;
+    newVal = tempMax-2000;
+    w_1 = 2000;
+    w_4 = 2000;
+    w_2 -= newVal;
+    w_3 -= newVal;
+  }
+else if(w_2 - (pitchIn)/2 < 1200)
+  {
+    double tempMin = w_2 - (pitchIn)/2;
+    newVal2 = 1200 - tempMin;
+    w_1 += newVal;
+    w_4 += newVal;
+    w_2 = 1200;
+    w_3 = 1200;
+  }
+else
+  {
+    w_1 += (pitchIn)/2;
+    w_4 += (pitchIn)/2;
+    w_2 -= (pitchIn)/2;
+    w_3 -= (pitchIn)/2;
+  }
+  double newT = T * cos(rollAngle);
+  double offsetT = 1 - newT;
+  w_1 += offsetT/4;
+  w_2 += offsetT/4;
+  w_3 += offsetT/4;
+  w_4 += offsetT/4;
+
+
+/*
 pitch motion (moving forward and back):
 
 similar to 'roll motion'
