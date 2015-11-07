@@ -303,14 +303,15 @@ up and down(elevation on the z-axis):
 */
 if(abs(throttleIn - oldSensorVal3) > minChange)
   {
-    if((w_1 + (throttleIn/4)) > 2000)
+    double change = throttleIn - oldSensorVal3;
+    if((w_1 + (change/4)) > 2000)
     {
       w_1 = 2000;
       w_2 = 2000;
       w_3 = 2000;
       w_4 = 2000;
     }
-    else if((w_1 - (throttleIn/4)) < 1200)
+    else if((w_1 - (change/4)) < 1200)
     {
       w_1 = 1200;
       w_2 = 1200;
@@ -319,10 +320,10 @@ if(abs(throttleIn - oldSensorVal3) > minChange)
     }
     else
     {
-      w_1 += throttleIn/4;
-      w_2 += throttleIn/4;
-      w_3 += throttleIn/4;
-      w_4 += throttleIn/4;
+      w_1 += change/4;
+      w_2 += change/4;
+      w_3 += change/4;
+      w_4 += change/4;
 
     }
   }
@@ -343,9 +344,10 @@ this shouldnt make the quadcopter change its position in space, just where the '
 //threshold and add or subtract it from the other, non excessive, value
 if(abs(yawIn - oldSensorVal4) > minChange)
   {
-    if(w_1 + (yawIn)/2 > 2000)
+    double yawChange = yawIn - oldSensorVal4;
+    if(w_1 + (yawChange)/2 > 2000)
       {
-        double tempMax = w_1 + (yawIn)/2;
+        double tempMax = w_1 + (yawChange)/2;
         double newVal = tempMax-2000;
         w_1 = 2000;
         w_3 = 2000;
@@ -353,9 +355,9 @@ if(abs(yawIn - oldSensorVal4) > minChange)
         w_4 -= newVal;
 
       }
-    else if(w_2 - (yawIn)/2 < 1200)
+    else if(w_2 - (yawChange)/2 < 1200)
       {
-        double tempMin = w_2 - (yawIn)/2;
+        double tempMin = w_2 - (yawChange)/2;
         double newVal2 = 1200 - tempMin;
         w_1 += newVal2;
         w_3 += newVal2;
@@ -365,10 +367,10 @@ if(abs(yawIn - oldSensorVal4) > minChange)
       }
     else
       {
-        w_1 += (yawIn)/2;
-        w_3 += (yawIn)/2;
-        w_2 -= (yawIn)/2;
-        w_4 -= (yawIn)/2;
+        w_1 += (yawChange)/2;
+        w_3 += (yawChange)/2;
+        w_2 -= (yawChange)/2;
+        w_4 -= (yawChange)/2;
 
       }
   }
@@ -392,18 +394,19 @@ Torque might be off by a sqrt of something - Juan
 */
 if(abs(rollIn - oldSensorVal2) > minChange)
   {
-    if(w_1 + (rollIn)/2 > 2000)
+    double rollChange = rollIn - oldSensorVal2;
+    if(w_1 + (rollChange)/2 > 2000)
     {
-      double tempMax = w_1 + (rollIn)/2;
+      double tempMax = w_1 + (rollChange)/2;
       double newVal = tempMax-2000;
       w_1 = 2000;
       w_4 = 2000;
       w_2 -= newVal;
       w_3 -= newVal;
     }
-    else if(w_2 - (rollIn)/2 < 1200)
+    else if(w_2 - (rollChange)/2 < 1200)
     {
-      double tempMin = w_2 - (rollIn)/2;
+      double tempMin = w_2 - (rollChange)/2;
       double newVal2 = 1200 - tempMin;
       w_1 += newVal2;
       w_4 += newVal2;
@@ -413,10 +416,10 @@ if(abs(rollIn - oldSensorVal2) > minChange)
     }
     else
     {
-      w_1 += (rollIn)/2;
-      w_4 += (rollIn)/2;
-      w_2 -= (rollIn)/2;
-      w_3 -= (rollIn)/2;
+      w_1 += (rollChange)/2;
+      w_4 += (rollChange)/2;
+      w_2 -= (rollChange)/2;
+      w_3 -= (rollChange)/2;
 
     }
     double newT = ((w_1 * w_1 + w_2 * w_2 + w_3 * w_3 + w_4 * w_4) * cos(rollAngle)) * cos(pitchAngle);
@@ -443,18 +446,19 @@ and we want lift T=mg so that it stays at the same height so again w_n will have
 
 if(abs(pitchIn - oldSensorVal1) > minChange)
 {
-  if(w_1 + (pitchIn)/2 > 2000)
+  double pitchChange = pitchIn - oldSensorVal1;
+  if(w_1 + (pitchChange)/2 > 2000)
     {
-      double tempMax = w_1 + (pitchIn)/2;
+      double tempMax = w_1 + (pitchChange)/2;
       double newVal = tempMax-2000;
       w_1 = 2000;
       w_2 = 2000;
       w_3 -= newVal;
       w_4 -= newVal;
     }
-  else if(w_2 - (pitchIn)/2 < 1200)
+  else if(w_2 - (pitchChange)/2 < 1200)
     {
-      double tempMin = w_2 - (pitchIn)/2;
+      double tempMin = w_2 - (pitchChange)/2;
       double newVal2 = 1200 - tempMin;
       w_1 += newVal2;
       w_2 += newVal2;
@@ -463,10 +467,10 @@ if(abs(pitchIn - oldSensorVal1) > minChange)
     }
   else
     {
-      w_1 += (pitchIn)/2;
-      w_2 += (pitchIn)/2;
-      w_3 -= (pitchIn)/2;
-      w_4 -= (pitchIn)/2;
+      w_1 += (pitchChange)/2;
+      w_2 += (pitchChange)/2;
+      w_3 -= (pitchChange)/2;
+      w_4 -= (pitchChange)/2;
     }
     double newPitchT = ((w_1 * w_1 + w_2 * w_2 + w_3 * w_3 + w_4 * w_4) * cos(rollAngle)) * cos(pitchAngle);
     double offsetPT = 1 - newPitchT;
