@@ -11,6 +11,18 @@ Adafruit_L3GD20 gyro;
 we don't need xGyro yGyro and zGyro like in accelerometer because we're using the Adafruit_L3GD20 library thing
 I dont know how i feel about not really knowing whats happening behind the scenes of that sensor
 */
+//Creating a global variable to keep track of the previous sensor value
+//We will use this to compare with the new value and only add the change to
+//the motor
+
+double oldSensorVal1 = 0;
+double oldSensorVal2 = 0;
+double oldSensorVal3 = 0;
+double oldSensorVal4 = 0;
+
+//arbitrary change before we add to motors
+const double minChange = 50;
+
 
 //now the accelerometer part
 const int xAccInput = A0;
@@ -161,7 +173,7 @@ void loop() {
     */
 
     //sensorVal3 is thrust for all motors, sensorVal1 is left/right, sensorVal2 is forward/back, sensorVal4 yaw
-    int sensorVal1, sensorVal2, sensorVal3,sensorVal4;  //why were these started in loop()
+    double sensorVal1, sensorVal2, sensorVal3,sensorVal4;  //why were these started in loop()
     //int sensorConvert1, sensorConvert2, sensorConvert3, sensorConvert4; dont think i need these anymore
     sensorVal1= pulseIn(pin1,HIGH);
     sensorVal2= pulseIn(pin2, HIGH);
@@ -255,10 +267,10 @@ M_n=L X T_n where L is distance from the center of mass (theoretically the cente
 */
     double M_1,M_2,M_3,M_4;
 
-    double w_1 = sensorVal3;
-    double w_2 = sensorVal3;
-    double w_3 = sensorVal3;
-    double w_4 = sensorVal3;
+    double w_1 = 0;
+    double w_2 = 0;
+    double w_3 = 0;
+    double w_4 = 0;
     double T_1 = sensorVal3 * sensorVal3;
     double T_2 = sensorVal3 * sensorVal3;
     double T_3 = sensorVal3 * sensorVal3;
@@ -267,6 +279,7 @@ M_n=L X T_n where L is distance from the center of mass (theoretically the cente
     double yawIn = sensorVal4;
     double rollIn = sensorVal2;
     double pitchIn = sensorVal1;
+    double trottleIn = sensorVal3;
 
 /*
 hover:
@@ -281,7 +294,33 @@ This is done by changing condition 1 in 'hover'
 we change the speed of all motors increasing them to go up and decreasing them to go down.
 note that T is proportional to w^2
 
-
+up and down(elevation on the z-axis):
+*/
+if(math.abs(throttleIn - oldSensorVal3) > minChange)
+  {
+    if((w_1 + (throttleIn/4)) > 2000)
+    {
+      w_1 = 2000;
+      w_2 = 2000;
+      w_3 = 2000;
+      w_4 = 2000;
+    }
+    else if((w_1 - (throttleIn/4)) < 1200)
+    {
+      w_1 = 1200;
+      w_2 = 1200;
+      w_3 = 1200;
+      w_4 = 1200;
+    }
+    else
+    {
+      w_1 += throttleIn/4;
+      w_2 += throttleIn/4;
+      w_3 += throttleIn/4;
+      w_4 += throttleIn/4;
+    }
+  }
+/*
 yaw motion (rotation about z axis):
 this is done by changing condition 4 in 'hover'
 motion in the yaw direction (yaw_dot) will be proportional to (|w_1| +|w_3|) - (|w_2| +|w_4|) != 0
@@ -296,6 +335,8 @@ this shouldnt make the quadcopter change its position in space, just where the '
 //sensorVal4 is mapped to (-800,800);
 //If statements check if the input pushes the value over 2000 or under 1200, If so we take the amount it took to reach the
 //threshold and add or subtract it from the other, non excessive, value
+if(math.abs(yawIn - oldSensorVal4) > minChange)
+  {
     if(w_1 + (yawIn)/2 > 2000)
       {
         double tempMax = w_1 + (yawIn)/2;
@@ -321,7 +362,7 @@ this shouldnt make the quadcopter change its position in space, just where the '
         w_2 -= (yawIn)/2;
         w_4 -= (yawIn)/2;
       }
-
+  }
 /*
 Now the slightly more complicated part
 
@@ -340,39 +381,40 @@ We want the qc to stay at the same height so we actually have to adjust this Lif
 by some factor that i'll figure out later
 Torque might be off by a sqrt of something - Juan
 */
-
-if(w_1 + (rollIn)/2 > 2000)
+if(math.abs(rollIn - oldSensorVal2) > minChange)
   {
-    double tempMax = w_1 + (rollIn)/2;
-    newVal = tempMax-2000;
-    w_1 = 2000;
-    w_4 = 2000;
-    w_2 -= newVal;
-    w_3 -= newVal;
+    if(w_1 + (rollIn)/2 > 2000)
+    {
+      double tempMax = w_1 + (rollIn)/2;
+      newVal = tempMax-2000;
+      w_1 = 2000;
+      w_4 = 2000;
+      w_2 -= newVal;
+      w_3 -= newVal;
+    }
+    else if(w_2 - (rollIn)/2 < 1200)
+    {
+      double tempMin = w_2 - (rollIn)/2;
+      newVal2 = 1200 - tempMin;
+      w_1 += newVal;
+      w_4 += newVal;
+      w_2 = 1200;
+      w_3 = 1200;
+    }
+    else
+    {
+      w_1 += (roolIn)/2;
+      w_4 += (roolIn)/2;
+      w_2 -= (rollIn)/2;
+      w_3 -= (rollIn)/2;
+    }
+    double newT = ((w_1 * w_1 + w_2 * w_2 + w_3 * w_3 + w_4 * w_4) * cos(rollAngle)) * cos(pitchAngle);
+    double offsetT = 1 - newT;
+    w_1 += offsetT/4;
+    w_2 += offsetT/4;
+    w_3 += offsetT/4;
+    w_4 += offsetT/4;
   }
-else if(w_2 - (rollIn)/2 < 1200)
-  {
-    double tempMin = w_2 - (rollIn)/2;
-    newVal2 = 1200 - tempMin;
-    w_1 += newVal;
-    w_4 += newVal;
-    w_2 = 1200;
-    w_3 = 1200;
-  }
-else
-  {
-    w_1 += (roolIn)/2;
-    w_4 += (roolIn)/2;
-    w_2 -= (rollIn)/2;
-    w_3 -= (rollIn)/2;
-  }
-  double newT = ((w_1 * w_1 + w_2 * w_2 + w_3 * w_3 + w_4 * w_4) * cos(rollAngle)) * cos(pitchAngle);
-  double offsetT = 1 - newT;
-  w_1 += offsetT/4;
-  w_2 += offsetT/4;
-  w_3 += offsetT/4;
-  w_4 += offsetT/4;
-
 
 /*
 pitch motion (moving forward and back):
@@ -386,37 +428,49 @@ lift T=T*cos(pitchAngle)
 F/B  T=T*sin(pitchAngle)
 and we want lift T=mg so that it stays at the same height so again w_n will have to be modified
 */
-if(w_1 + (pitchIn)/2 > 2000)
-  {
-    double tempMax = w_1 + (pitchIn)/2;
-    newVal = tempMax-2000;
-    w_1 = 2000;
-    w_2 = 2000;
-    w_3 -= newVal;
-    w_4 -= newVal;
-  }
-else if(w_2 - (pitchIn)/2 < 1200)
-  {
-    double tempMin = w_2 - (pitchIn)/2;
-    newVal2 = 1200 - tempMin;
-    w_1 += newVal;
-    w_2 += newVal;
-    w_3 = 1200;
-    w_4 = 1200;
-  }
-else
-  {
-    w_1 += (pitchIn)/2;
-    w_2 += (pitchIn)/2;
-    w_3 -= (pitchIn)/2;
-    w_4 -= (pitchIn)/2;
-  }
-  double newPitchT = ((w_1 * w_1 + w_2 * w_2 + w_3 * w_3 + w_4 * w_4) * cos(rollAngle)) * cos(pitchAngle);
-  double offsetT = 1 - newPitchT;
-  w_1 += offsetT/4;
-  w_2 += offsetT/4;
-  w_3 += offsetT/4;
-  w_4 += offsetT/4;
+
+if(math.abs(pitchIn - oldSensorVal1) > minChange)
+{
+  if(w_1 + (pitchIn)/2 > 2000)
+    {
+      double tempMax = w_1 + (pitchIn)/2;
+      newVal = tempMax-2000;
+      w_1 = 2000;
+      w_2 = 2000;
+      w_3 -= newVal;
+      w_4 -= newVal;
+    }
+  else if(w_2 - (pitchIn)/2 < 1200)
+    {
+      double tempMin = w_2 - (pitchIn)/2;
+      newVal2 = 1200 - tempMin;
+      w_1 += newVal;
+      w_2 += newVal;
+      w_3 = 1200;
+      w_4 = 1200;
+    }
+  else
+    {
+      w_1 += (pitchIn)/2;
+      w_2 += (pitchIn)/2;
+      w_3 -= (pitchIn)/2;
+      w_4 -= (pitchIn)/2;
+    }
+    double newPitchT = ((w_1 * w_1 + w_2 * w_2 + w_3 * w_3 + w_4 * w_4) * cos(rollAngle)) * cos(pitchAngle);
+    double offsetT = 1 - newPitchT;
+    w_1 += offsetT/4;
+    w_2 += offsetT/4;
+    w_3 += offsetT/4;
+    w_4 += offsetT/4;
+}
+
+//saving old sensor vals;
+oldSensorVal1 = sensorVal1;
+oldSensorVal2 = sensorVal2;
+oldSensorVal3 = sensorVal3;
+oldSensorVal4 = sensorVal4;
+
+
 /*
                                                                     THINGS TO DO:
 next i'll write how this is changed by flying in the '+' orientation and how we can easily modify the code so that we can change flight
@@ -449,5 +503,5 @@ int ReadAxis(int axisPin)
 double calculateTorque()
 {
   double torque = ((w_1 * w_1 + w_2 * w_2 + w_3 * w_3 + w_4 * w_4) * cos(pitchAngle)) * cos(rollAngle);
-  return torque; 
+  return torque;
 }
