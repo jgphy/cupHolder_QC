@@ -338,23 +338,21 @@ lift T=T*cos(rollAngle)
 L/R  T=T*sin(rollAngle)
 We want the qc to stay at the same height so we actually have to adjust this Lift T s.t lift T=T*cos(phi)=mg so w_n will have to be increased
 by some factor that i'll figure out later
-//THOUGHTS: If we constantly feed the sensor val to the motors will it continue to roll even if we only want it to keep moving to the left
-//with a constant angular acceleration
-//add 1-lift to each motor
+Torque might be off by a sqrt of something - Juan
 */
 
-if(w_1 + (pitchIn)/2 > 2000)
+if(w_1 + (rollIn)/2 > 2000)
   {
-    double tempMax = w_1 + (pitchIn)/2;
+    double tempMax = w_1 + (rollIn)/2;
     newVal = tempMax-2000;
     w_1 = 2000;
     w_4 = 2000;
     w_2 -= newVal;
     w_3 -= newVal;
   }
-else if(w_2 - (pitchIn)/2 < 1200)
+else if(w_2 - (rollIn)/2 < 1200)
   {
-    double tempMin = w_2 - (pitchIn)/2;
+    double tempMin = w_2 - (rollIn)/2;
     newVal2 = 1200 - tempMin;
     w_1 += newVal;
     w_4 += newVal;
@@ -363,12 +361,12 @@ else if(w_2 - (pitchIn)/2 < 1200)
   }
 else
   {
-    w_1 += (pitchIn)/2;
-    w_4 += (pitchIn)/2;
-    w_2 -= (pitchIn)/2;
-    w_3 -= (pitchIn)/2;
+    w_1 += (roolIn)/2;
+    w_4 += (roolIn)/2;
+    w_2 -= (rollIn)/2;
+    w_3 -= (rollIn)/2;
   }
-  double newT = T * cos(rollAngle);
+  double newT = ((w_1 * w_1 + w_2 * w_2 + w_3 * w_3 + w_4 * w_4) * cos(rollAngle)) * cos(pitchAngle);
   double offsetT = 1 - newT;
   w_1 += offsetT/4;
   w_2 += offsetT/4;
@@ -387,7 +385,39 @@ similarly to 'roll motion' 2 no longer holds and
 lift T=T*cos(pitchAngle)
 F/B  T=T*sin(pitchAngle)
 and we want lift T=mg so that it stays at the same height so again w_n will have to be modified
-
+*/
+if(w_1 + (pitchIn)/2 > 2000)
+  {
+    double tempMax = w_1 + (pitchIn)/2;
+    newVal = tempMax-2000;
+    w_1 = 2000;
+    w_2 = 2000;
+    w_3 -= newVal;
+    w_4 -= newVal;
+  }
+else if(w_2 - (pitchIn)/2 < 1200)
+  {
+    double tempMin = w_2 - (pitchIn)/2;
+    newVal2 = 1200 - tempMin;
+    w_1 += newVal;
+    w_2 += newVal;
+    w_3 = 1200;
+    w_4 = 1200;
+  }
+else
+  {
+    w_1 += (pitchIn)/2;
+    w_2 += (pitchIn)/2;
+    w_3 -= (pitchIn)/2;
+    w_4 -= (pitchIn)/2;
+  }
+  double newPitchT = ((w_1 * w_1 + w_2 * w_2 + w_3 * w_3 + w_4 * w_4) * cos(rollAngle)) * cos(pitchAngle);
+  double offsetT = 1 - newPitchT;
+  w_1 += offsetT/4;
+  w_2 += offsetT/4;
+  w_3 += offsetT/4;
+  w_4 += offsetT/4;
+/*
                                                                     THINGS TO DO:
 next i'll write how this is changed by flying in the '+' orientation and how we can easily modify the code so that we can change flight
 orientations as well as some other more advanced things.
@@ -414,4 +444,10 @@ int ReadAxis(int axisPin)
     reading += analogRead(axisPin);
   }
   return reading/sampleSize; //returns an average
+}
+
+double calculateTorque()
+{
+  double torque = ((w_1 * w_1 + w_2 * w_2 + w_3 * w_3 + w_4 * w_4) * cos(pitchAngle)) * cos(rollAngle);
+  return torque; 
 }
