@@ -23,7 +23,9 @@ float offset = 2.35;
 // No need to specify pins for I2C
 Adafruit_L3GD20 gyro;
 
+float tiltangle = 0;
 
+float angle = 0;
 
 const int xInput = A0;
 const int yInput = A1;
@@ -137,14 +139,15 @@ void loop()
       //Serial.print("Z: "); Serial.println(gyro.data.z); Serial.print(" ");
   }
 
-  float tiltangle = 0;
 
-  float angle = .98*(tiltangle+(deg/100)) +.02*pitchAngle;
+  kalman(pitchAngle, y, angle);
+
+  //angle = .98*(tiltangle+(deg/100)) +.02*pitchAngle;
   Serial.print("PITCH: ");
   Serial.println(pitchAngle);
   Serial.print("ANGLE: ");
   Serial.println(angle);
-    Serial.print("DEG: ");
+  Serial.print("DEG: ");
   Serial.println(deg/100);
   
   
@@ -169,3 +172,88 @@ int ReadAxis(int axisPin)
   }
   return reading/sampleSize;
 }
+
+
+
+
+
+/////////////////////////////////////////////////////
+/////////////      KALMAN FILTER      ///////////////
+/////////////////////////////////////////////////////
+
+float error = 0; //initial value
+
+float gyroBias = 0.003;
+float accelVar = 0.001;
+//these are suggested, 
+//supposedly well balanced values for these variables
+
+float P [2][2] = {{1000., 0.}, {0., 1000.}}; 
+//# initial uncertainty matrix
+
+float R = 0.03;
+//# measurement uncertainty -- some suggested constant correlated with how accurate our selnsors are. may be non-optimal
+
+float K [2] = {0, 0}; 
+//kalman gain gets updated over time to sshift weight to accelerometer, and away from the gyroscope
+
+float S; //some intermediate value in the algorithm
+
+float rate = 0;
+//angular velocity according to gyro
+
+/////////////////////////////////////////
+/*
+please feed:
+
+accelIn -> ANGLE according to accelerometer
+
+gyroIn -> Angular VELOCITY according to gyroscope
+
+angle -> whatever the latest value we have for the angle in this pair of axes is
+*/
+/////////////////////////////////////////
+
+void kalman(float &accelIn, float &gyroIn, float &angle)
+{
+    // PREDICTION STEP
+    rate = gyroIn - gyroBias;  //offset accounting for bias
+    angle += dt * rate;        
+    //^^^ predicts angle based on millis(). 
+    //might have to call millis() again to see if it gets more accurate. 
+    //leaving as- is for now, or just forgo this altogether
+
+    P[0][0] += dt * (dt*P[1][1] - P[0][1] - P[1][0] + accelVar);
+    P[0][1] -= dt * P[1][1];
+    P[1][0] -= dt * P[1][1];
+    P[1][1] += gyroBias * dt;
+    //^^ predicts uncertainty matrix to account for time passed
+
+
+    // MEASUREMENT STEP
+    error = accelIn - angle;
+    // difference between latest measured value and current angle value
+
+    S = P[0][0] + R;
+    //some intermediate step needed for kalman gain...
+
+    K[0] = P[0][0] / S;
+    K[1] = P[1][0] / S;
+    // updates kalman gain.
+
+    //UPDATE STEP
+    angle += K[0] * error;
+    gyroBias += K[1] * error;
+    //updates abgle and gyroBias based on gain and error
+
+    float P00_temp = P[0][0];
+    float P01_temp = P[0][1];
+
+    P[0][0] -= K[0] * P00_temp;
+    P[0][1] -= K[0] * P01_temp;
+    P[1][0] -= K[1] * P00_temp;
+    P[1][1] -= K[1] * P01_temp;
+    // Updates uncertainty matrix 
+    //based on gain and predicted uncertainty
+}
+
