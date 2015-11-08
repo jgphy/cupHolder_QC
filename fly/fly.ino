@@ -310,7 +310,7 @@ this shouldnt make the quadcopter change its position in space, just where the '
 //ChannelVal4 is mapped to (-800,800);
 //If statements check if the input pushes the value over 2000 or under 1200, If so we take the amount it took to reach the
 //threshold and add or subtract it from the other, non excessive, value
-if(pitchIn < 10  && rollIn < 10 && yawIn < 10)
+if(abs(pitchIn) < 10  && abs(rollIn) < 10 && abs(yawIn) < 10)
 {
   hover();
 }
