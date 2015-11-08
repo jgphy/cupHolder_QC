@@ -31,9 +31,23 @@ int motor1=2, motor2=4, motor3=12, motor4=3;         //pins we're going to use f
 //note:we're not using arduino's analogwrite() which is their built in pwm
 
 //I think we need some Receiver stuff here so i'll add what i think it is
-const int channel1Min= 0;
-const int channel1Max=1000; //not real values we need to check what these are
+const int channel1Min= 995;
+const int channel1Max= 1984; //not real values we need to check what these are
 
+const int channel2Min = 990;
+const int channel2Max = 1984;
+
+const int channel3Min = 990;
+const int channel3Max = 1984;
+
+const int channel4Min = 1018;
+const int channel4Max = 1984;
+
+const int channel5Min = 989;
+const int channel5Max = 1984;
+
+const int channel6Min = 989;
+const int channel6Max = 1984;
 
 const float pi=3.14159;
 
@@ -156,16 +170,16 @@ void loop() {
     ChannelVal1= map(ChannelVal1,channel1Min,channel1Max,1200,2000);
     ChannelVal1= constrain(ChannelVal1,1200,2000);
 
-    ChannelVal2= map(ChannelVal2,channel1Min,channel1Max,1200,2000);
+    ChannelVal2= map(ChannelVal2,channel2Min,channel2Max,1200,2000);
     ChannelVal2= constrain(ChannelVal2,1200,2000);
 
-    ChannelVal3= map(ChannelVal3,channel1Min,channel1Max,1200,2000);
+    ChannelVal3= map(ChannelVal3,channel3Min,channel3Max,1200,2000);
     ChannelVal3= constrain(ChannelVal3,1200,2000);
 
-    ChannelVal4= map(ChannelVal4,channel1Min,channel1Max,1200,2000);
+    ChannelVal4= map(ChannelVal4,channel4Min,channel4Max,1200,2000);
     ChannelVal4= constrain(ChannelVal4,-800,800);
 
-    ChannelVal5= map(ChannelVal5,channel1Min,channel1Max,1200,2000);
+    ChannelVal5= map(ChannelVal5,channel5Min,channel5Max,1200,2000);
     ChannelVal5= constrain(ChannelVal5,-800,800);
 
 
