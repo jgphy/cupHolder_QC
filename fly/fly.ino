@@ -346,6 +346,10 @@ this shouldnt make the quadcopter change its position in space, just where the '
 //sensorVal4 is mapped to (-800,800);
 //If statements check if the input pushes the value over 2000 or under 1200, If so we take the amount it took to reach the
 //threshold and add or subtract it from the other, non excessive, value
+if(pitchIn < minChange  && rollIn < minChange && yawIn < minChange)
+{
+  hover();
+}
 if(abs(yawIn - oldSensorVal4) > minChange)
   {
     double yawChange = yawIn - oldSensorVal4;
