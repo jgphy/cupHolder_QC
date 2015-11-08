@@ -6,10 +6,10 @@ int Pulse = 1100;
 //We will use this to compare with the new value and only add the change to
 //the motor
 
-double oldSensorVal1 = 0;
-double oldSensorVal2 = 0;
-double oldSensorVal3 = 0;
-double oldSensorVal4 = 0;
+double oldChannelVal1 = 0;
+double oldChannelVal2 = 0;
+double oldChannelVal3 = 0;
+double oldChannelVal4 = 0;
 
 //arbitrary change before we add to motors
 //const double minChange = 50;
@@ -141,32 +141,32 @@ void loop() {
     within 10ms
     */
 
-    //sensorVal3 is thrust for all motors, sensorVal1 is left/right, sensorVal2 is forward/back, sensorVal4 yaw
-    double sensorVal1, sensorVal2, sensorVal3,sensorVal4, sensorVal5;  //why were these started in loop()
+    //ChannelVal3 is thrust for all motors, ChannelVal1 is left/right, ChannelVal2 is forward/back, ChannelVal4 yaw
+    double ChannelVal1, ChannelVal2, ChannelVal3,ChannelVal4, ChannelVal5;  //why were these started in loop()
     //int sensorConvert1, sensorConvert2, sensorConvert3, sensorConvert4; dont think i need these anymore
-    sensorVal1= pulseIn(pin,HIGH);
-    sensorVal2= pulseIn(pin2, HIGH);
-    sensorVal3= pulseIn(pin3, HIGH);
-    sensorVal4= pulseIn(pin4, HIGH);
-    sensorVal5= pulseIn(pin5, HIGH);
-    double minChange = sensorVal5;
+    ChannelVal1= pulseIn(pin,HIGH);
+    ChannelVal2= pulseIn(pin2, HIGH);
+    ChannelVal3= pulseIn(pin3, HIGH);
+    ChannelVal4= pulseIn(pin4, HIGH);
+    ChannelVal5= pulseIn(pin5, HIGH);
+    double minChange = ChannelVal5;
 
-    //for this hover function im going to use sensorval1 as a throttle
+    //for this hover function im going to use ChannelVal1 as a throttle
     //1200 and 2000 come from the range we had for the esc before
-    sensorVal1= map(sensorVal1,channel1Min,channel1Max,1200,2000);
-    sensorVal1= constrain(sensorVal1,1200,2000);
+    ChannelVal1= map(ChannelVal1,channel1Min,channel1Max,1200,2000);
+    ChannelVal1= constrain(ChannelVal1,1200,2000);
 
-    sensorVal2= map(sensorVal2,channel1Min,channel1Max,1200,2000);
-    sensorVal2= constrain(sensorVal2,1200,2000);
+    ChannelVal2= map(ChannelVal2,channel1Min,channel1Max,1200,2000);
+    ChannelVal2= constrain(ChannelVal2,1200,2000);
 
-    sensorVal3= map(sensorVal3,channel1Min,channel1Max,1200,2000);
-    sensorVal3= constrain(sensorVal3,1200,2000);
+    ChannelVal3= map(ChannelVal3,channel1Min,channel1Max,1200,2000);
+    ChannelVal3= constrain(ChannelVal3,1200,2000);
 
-    sensorVal4= map(sensorVal4,channel1Min,channel1Max,1200,2000);
-    sensorVal4= constrain(sensorVal4,-800,800);
+    ChannelVal4= map(ChannelVal4,channel1Min,channel1Max,1200,2000);
+    ChannelVal4= constrain(ChannelVal4,-800,800);
 
-    sensorVal5= map(sensorVal5,channel1Min,channel1Max,1200,2000);
-    sensorVal5= constrain(sensorVal5,-800,800);
+    ChannelVal5= map(ChannelVal5,channel1Min,channel1Max,1200,2000);
+    ChannelVal5= constrain(ChannelVal5,-800,800);
 
 
 
@@ -244,15 +244,15 @@ M_n=L X T_n where L is distance from the center of mass (theoretically the cente
     double w_2 = 0;
     double w_3 = 0;
     double w_4 = 0;
-    double T_1 = sensorVal3 * sensorVal3;
-    double T_2 = sensorVal3 * sensorVal3;
-    double T_3 = sensorVal3 * sensorVal3;
-    double T_4 = sensorVal3 * sensorVal3;
+    double T_1 = ChannelVal3 * ChannelVal3;
+    double T_2 = ChannelVal3 * ChannelVal3;
+    double T_3 = ChannelVal3 * ChannelVal3;
+    double T_4 = ChannelVal3 * ChannelVal3;
     double T = T_1 + T_2 + T_3 + T_4;
-    double yawIn = sensorVal4;
-    double rollIn = sensorVal2;
-    double pitchIn = sensorVal1;
-    double throttleIn = sensorVal3;
+    double yawIn = ChannelVal4;
+    double rollIn = ChannelVal2;
+    double pitchIn = ChannelVal1;
+    double throttleIn = ChannelVal3;
 
 /*
 hover:
@@ -269,9 +269,9 @@ note that T is proportional to w^2
 
 up and down(elevation on the z-axis):
 */
-if(abs(throttleIn - oldSensorVal3) > minChange)
+if(abs(throttleIn - oldChannelVal3) > minChange)
   {
-    double change = throttleIn - oldSensorVal3;
+    double change = throttleIn - oldChannelVal3;
     if((w_1 + (change/4)) > 2000)
     {
       w_1 = 2000;
@@ -307,16 +307,16 @@ this shouldnt make the quadcopter change its position in space, just where the '
 */
 //Im thinking if we add half of the sensor reading to each motor and subtract from the other pair it will keep
 //the same amount of total thrust and rotate the copter
-//sensorVal4 is mapped to (-800,800);
+//ChannelVal4 is mapped to (-800,800);
 //If statements check if the input pushes the value over 2000 or under 1200, If so we take the amount it took to reach the
 //threshold and add or subtract it from the other, non excessive, value
 if(pitchIn < minChange  && rollIn < minChange && yawIn < minChange)
 {
   hover();
 }
-if(abs(yawIn - oldSensorVal4) > minChange)
+if(abs(yawIn - oldChannelVal4) > minChange)
   {
-    double yawChange = yawIn - oldSensorVal4;
+    double yawChange = yawIn - oldChannelVal4;
     if(w_1 + (yawChange)/2 > 2000)
       {
         double tempMax = w_1 + (yawChange)/2;
@@ -364,9 +364,9 @@ We want the qc to stay at the same height so we actually have to adjust this Lif
 by some factor that i'll figure out later
 Torque might be off by a sqrt of something - Juan
 */
-if(abs(rollIn - oldSensorVal2) > minChange)
+if(abs(rollIn - oldChannelVal2) > minChange)
   {
-    double rollChange = rollIn - oldSensorVal2;
+    double rollChange = rollIn - oldChannelVal2;
     if(w_1 + (rollChange)/2 > 2000)
     {
       double tempMax = w_1 + (rollChange)/2;
@@ -416,9 +416,9 @@ F/B  T=T*sin(pitchAngle)
 and we want lift T=mg so that it stays at the same height so again w_n will have to be modified
 */
 
-if(abs(pitchIn - oldSensorVal1) > minChange)
+if(abs(pitchIn - oldChannelVal1) > minChange)
 {
-  double pitchChange = pitchIn - oldSensorVal1;
+  double pitchChange = pitchIn - oldChannelVal1;
   if(w_1 + (pitchChange)/2 > 2000)
     {
       double tempMax = w_1 + (pitchChange)/2;
@@ -453,10 +453,10 @@ if(abs(pitchIn - oldSensorVal1) > minChange)
 }
 
 //saving old sensor vals;
-oldSensorVal1 = sensorVal1;
-oldSensorVal2 = sensorVal2;
-oldSensorVal3 = sensorVal3;
-oldSensorVal4 = sensorVal4;
+oldChannelVal1 = ChannelVal1;
+oldChannelVal2 = ChannelVal2;
+oldChannelVal3 = ChannelVal3;
+oldChannelVal4 = ChannelVal4;
 
 
 /*
