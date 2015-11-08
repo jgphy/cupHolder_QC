@@ -24,7 +24,7 @@ double oldSensorVal3 = 0;
 double oldSensorVal4 = 0;
 
 //arbitrary change before we add to motors
-const double minChange = 50;
+//const double minChange = 50;
 
 
 //now the accelerometer part
@@ -89,6 +89,7 @@ void setup() {
   pinMode(pin2, INPUT);
   pinMode(pin3, INPUT);
   pinMode(pin4, INPUT);
+  pinMode(pin5, INPUT);
   //setup output pins
   pinMode(motor1, OUTPUT);
   pinMode(motor2, OUTPUT);
@@ -177,12 +178,14 @@ void loop() {
     */
 
     //sensorVal3 is thrust for all motors, sensorVal1 is left/right, sensorVal2 is forward/back, sensorVal4 yaw
-    double sensorVal1, sensorVal2, sensorVal3,sensorVal4;  //why were these started in loop()
+    double sensorVal1, sensorVal2, sensorVal3,sensorVal4, sensorVal5;  //why were these started in loop()
     //int sensorConvert1, sensorConvert2, sensorConvert3, sensorConvert4; dont think i need these anymore
     sensorVal1= pulseIn(pin,HIGH);
     sensorVal2= pulseIn(pin2, HIGH);
     sensorVal3= pulseIn(pin3, HIGH);
     sensorVal4= pulseIn(pin4, HIGH);
+    sensorVal5= pulseIn(pin5, HIGH);
+    double minChange = sensorVal5;
 
     //for this hover function im going to use sensorval1 as a throttle
     //1200 and 2000 come from the range we had for the esc before
@@ -198,7 +201,8 @@ void loop() {
     sensorVal4= map(sensorVal4,channel1Min,channel1Max,1200,2000);
     sensorVal4= constrain(sensorVal4,-800,800);
 
-
+    sensorVal5= map(sensorVal5,channel1Min,channel1Max,1200,2000);
+    sensorVal5= constrain(sensorVal5,-800,800);
 
 
 
