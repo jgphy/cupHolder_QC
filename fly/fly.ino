@@ -73,15 +73,15 @@ void setup() {
   //LOOK HERE:this seems like a callibration type thing, do we actually need this?
   for (Arming_Time = 0; Arming_Time < 500; Arming_Time += 1)
   {
-    digitalWrite(pin,HIGH);
-    digitalWrite(pin2,HIGH);
-    digitalWrite(pin3,HIGH);
-    digitalWrite(pin4,HIGH);
+    digitalWrite(motor1,HIGH);
+    digitalWrite(motor2,HIGH);
+    digitalWrite(motor3,HIGH);
+    digitalWrite(motor4,HIGH);
     delayMicroseconds(1100);
-    digitalWrite(pin,LOW);
-    digitalWrite(pin2,LOW);
-    digitalWrite(pin3,LOW);
-    digitalWrite(pin4,LOW);
+    digitalWrite(motor,LOW);
+    digitalWrite(motor2,LOW);
+    digitalWrite(motor3,LOW);
+    digitalWrite(motor4,LOW);
     delay(20-(Pulse/1000));
 
   }
