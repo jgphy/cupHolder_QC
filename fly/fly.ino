@@ -1,18 +1,6 @@
-/*
-Most of this stuff is just combining the accelerometer and gyroscope stuff that
-we found online, i'll comment where i added stuff
-ALSO i added a bunch of comments that probably aren't necessary
-*/
-#include <math.h> //included a math library for trig stuff
-//first part comes straight from the gyroTest we dowloaded
-#include <Adafruit_L3GD20.h>
-Adafruit_L3GD20 gyro;
-/*
-we don't need xGyro yGyro and zGyro like in accelerometer because we're using the Adafruit_L3GD20 library thing
-I dont know how i feel about not really knowing whats happening behind the scenes of that sensor
-*/
 
-//Declaring Pulse
+#include <math.h> //included a math library for trig stuff
+
 int Pulse = 1100;
 //Creating a global variable to keep track of the previous sensor value
 //We will use this to compare with the new value and only add the change to
@@ -25,30 +13,6 @@ double oldSensorVal4 = 0;
 
 //arbitrary change before we add to motors
 //const double minChange = 50;
-
-
-//now the accelerometer part
-const int xAccInput = A0;
-const int yAccInput = A1;
-const int zAccInput = A2;
-
-//WHICH PINS ARE BEING USED UP by the gyroscope?????
-//IN the adafruit website it says just 4 and 5 which seems to good to be true
-
-// Raw Ranges:
-/*
-need to callibrate acccelerometer first using accelCalibration.ino then write down
-these values so that we dont have to callibrate it every time
-THESE values are temporary unti we get the actual values
-*/
-int xRawMin = 512;
-int xRawMax = 512;
-                    //Remember to change these!
-int yRawMin = 512;
-int yRawMax = 512;
-
-int zRawMin = 512;
-int zRawMax = 512;
 
 // Take multiple samples to reduce noise
 const int sampleSize = 10;
@@ -132,9 +96,9 @@ void loop() {
   if(timeChange >=sampleRate)
   {
     //read accelerometer stuff
-    int xRaw = ReadAxis(xAccInput);
-    int yRaw = ReadAxis(yAccInput);
-    int zRaw = ReadAxis(zAccInput);
+    // int xRaw = ReadAxis(xAccInput);
+    // int yRaw = ReadAxis(yAccInput);
+    // int zRaw = ReadAxis(zAccInput);
 
     // Convert raw values to 'milli-Gs"
     long xScaled = map(xRaw, xRawMin, xRawMax, -1000, 1000);
@@ -529,24 +493,12 @@ writeAll(motor1,w_1,motor2,w_2,motor3,w_3,motor4,w_4);
   //Writing to all the motors before the loop finishes
 
 }
-//this read axis just gets 10 readings from the accelerometer then takes the average
-//to get something more accurare
-int ReadAxis(int axisPin)
-{
-  long reading = 0;
-  analogRead(axisPin);
-  delay(1);
-  for (int i = 0; i < sampleSize; i++)
-  {
-    reading += analogRead(axisPin);
-  }
-  return reading/sampleSize; //returns an average
-}
 
-double calculateTorque(double w_1, double w_2, double w_3, double w_4, double pitchAngle, double rollAngle)
+
+double calculateThrust(double w_1, double w_2, double w_3, double w_4, double pitchAngle, double rollAngle)
 {
-  double torque = ((w_1 * w_1 + w_2 * w_2 + w_3 * w_3 + w_4 * w_4) * cos(pitchAngle)) * cos(rollAngle);
-  return torque;
+  double thrust = ((w_1 * w_1 + w_2 * w_2 + w_3 * w_3 + w_4 * w_4) * cos(pitchAngle)) * cos(rollAngle);
+  return thrust;
 }
 
 void writeAll(int motor1, double w_1, int motor2, double w_2, int motor3, double w_3, int motor4, double w_4)
