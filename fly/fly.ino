@@ -430,7 +430,7 @@ if(abs(rollIn - oldSensorVal2) > minChange)
       w_3 -= (rollChange)/2;
 
     }
-    double newT = ((w_1 * w_1 + w_2 * w_2 + w_3 * w_3 + w_4 * w_4) * cos(rollAngle)) * cos(pitchAngle);
+    double newT = calculteTorque(w_1,w_2,w_3,w_4,pitchAngle,rollAngle);
     double offsetT = 1 - newT;
     w_1 += offsetT/4;
     w_2 += offsetT/4;
@@ -480,7 +480,7 @@ if(abs(pitchIn - oldSensorVal1) > minChange)
       w_3 -= (pitchChange)/2;
       w_4 -= (pitchChange)/2;
     }
-    double newPitchT = ((w_1 * w_1 + w_2 * w_2 + w_3 * w_3 + w_4 * w_4) * cos(rollAngle)) * cos(pitchAngle);
+    double newPitchT = calculteTorque(w_1,w_2,w_3,w_4,pitchAngle,rollAngle);
     double offsetPT = 1 - newPitchT;
     w_1 += offsetPT/4;
     w_2 += offsetPT/4;
@@ -507,22 +507,23 @@ also if you guys have questions about dynamics things you should add it to this,
 potentially explain them better.
 */
 
-digitalWrite(motor1,HIGH);
-delayMicroseconds(w_1);
-digitalWrite(motor1,LOW);
+writeAll(motor1,w_1,motor2,w_2,motor3,w_3,motor4,w_4);
+//digitalWrite(motor1,HIGH);
+//delayMicroseconds(w_1);
+//digitalWrite(motor1,LOW);
 
 
-digitalWrite(motor2,HIGH);
-delayMicroseconds(w_2);
-digitalWrite(motor2,LOW);
+//digitalWrite(motor2,HIGH);
+//delayMicroseconds(w_2);
+//digitalWrite(motor2,LOW);
 
-digitalWrite(motor3,HIGH);
-delayMicroseconds(w_3);
-digitalWrite(motor3,LOW);
+//digitalWrite(motor3,HIGH);
+//delayMicroseconds(w_3);
+//digitalWrite(motor3,LOW);
 
-digitalWrite(motor4,HIGH);
-delayMicroseconds(w_4);
-digitalWrite(motor4,LOW);
+//digitalWrite(motor4,HIGH);
+//delayMicroseconds(w_4);
+//digitalWrite(motor4,LOW);
 
   }
   //Writing to all the motors before the loop finishes
@@ -546,4 +547,24 @@ double calculateTorque(double w_1, double w_2, double w_3, double w_4, double pi
 {
   double torque = ((w_1 * w_1 + w_2 * w_2 + w_3 * w_3 + w_4 * w_4) * cos(pitchAngle)) * cos(rollAngle);
   return torque;
+}
+
+void writeAll(int motor1, double w_1, int motor2, double w_2, int motor3, double w_3, int motor4, double w_4)
+{
+  digitalWrite(motor1,HIGH);
+  delayMicroseconds(w_1);
+  digitalWrite(motor1,LOW);
+
+
+  digitalWrite(motor2,HIGH);
+  delayMicroseconds(w_2);
+  digitalWrite(motor2,LOW);
+
+  digitalWrite(motor3,HIGH);
+  delayMicroseconds(w_3);
+  digitalWrite(motor3,LOW);
+
+  digitalWrite(motor4,HIGH);
+  delayMicroseconds(w_4);
+  digitalWrite(motor4,LOW);
 }
