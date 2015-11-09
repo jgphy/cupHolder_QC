@@ -254,10 +254,10 @@ M_n=L X T_n where L is distance from the center of mass (theoretically the cente
 */
     double M_1,M_2,M_3,M_4;
 
-    double w_1 = 0;
-    double w_2 = 0;
-    double w_3 = 0;
-    double w_4 = 0;
+    double w_1 = 1200;
+    double w_2 = 1200;
+    double w_3 = 1200;
+    double w_4 = 1200;
     double T_1 = ChannelVal3 * ChannelVal3;
     double T_2 = ChannelVal3 * ChannelVal3;
     double T_3 = ChannelVal3 * ChannelVal3;
