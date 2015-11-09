@@ -168,10 +168,10 @@ void loop() {
     //for this hover function im going to use ChannelVal1 as a throttle
     //1200 and 2000 come from the range we had for the esc before
     ChannelVal1= map(ChannelVal1,channel1Min,channel1Max,1200,2000);
-    ChannelVal1= constrain(ChannelVal1,1200,2000);
+    ChannelVal1= constrain(ChannelVal1,-800,800);
 
     ChannelVal2= map(ChannelVal2,channel2Min,channel2Max,1200,2000);
-    ChannelVal2= constrain(ChannelVal2,1200,2000);
+    ChannelVal2= constrain(ChannelVal2,-800,800);
 
     ChannelVal3= map(ChannelVal3,channel3Min,channel3Max,1200,2000);
     ChannelVal3= constrain(ChannelVal3,1200,2000);
@@ -486,22 +486,6 @@ potentially explain them better.
 */
 
 writeAll(motor1,w_1,motor2,w_2,motor3,w_3,motor4,w_4);
-//digitalWrite(motor1,HIGH);
-//delayMicroseconds(w_1);
-//digitalWrite(motor1,LOW);
-
-
-//digitalWrite(motor2,HIGH);
-//delayMicroseconds(w_2);
-//digitalWrite(motor2,LOW);
-
-//digitalWrite(motor3,HIGH);
-//delayMicroseconds(w_3);
-//digitalWrite(motor3,LOW);
-
-//digitalWrite(motor4,HIGH);
-//delayMicroseconds(w_4);
-//digitalWrite(motor4,LOW);
 
   }
   //Writing to all the motors before the loop finishes
