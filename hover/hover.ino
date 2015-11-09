@@ -1,5 +1,4 @@
 #include <Adafruit_L3GD20.h>
-
 #include <Adafruit_L3GD20_U.h>
 #include <Adafruit_LSM303_U.h>
 #include <math.h> //included a math library for trig stuff
@@ -8,21 +7,10 @@
 #include <Adafruit_Sensor.h>
 #include <Wire.h>
 
-/*
-Most of this stuff is just combining the accelerometer and gyroscope stuff that
-we found online, i'll comment where i added stuff
-ALSO i added a bunch of comments that probably aren't necessary
-*/
-
 //first part comes straight from the gyroTest we dowloaded
 //Adafruit_L3GD20_Unified gyro = Adafruit_L3GD20_Unified(20);
 Adafruit_L3GD20 gyro;
 Adafruit_LSM303_Accel_Unified accel = Adafruit_LSM303_Accel_Unified(54321);
-
-/*
-we don't need xGyro yGyro and zGyro like in accelerometer because we're using the Adafruit_L3GD20 library thing
-I dont know how i feel about not really knowing whats happening behind the scenes of that sensor
-*/
 
 int dt = 10;//
 
@@ -47,12 +35,12 @@ int motor1=2, motor2=4, motor3=12, motor4=13;         //pins we're going to use 
 
 const int channel1Min = 995;
 const int channel1Max = 1984;
- 
+
 const int channel2Min = 990;
-const int channel2Max = 1984; 
+const int channel2Max = 1984;
 
 const int channel3Min = 990;
-const int channel3Max = 1984; 
+const int channel3Max = 1984;
 
 const int channel4Min = 1018;
 const int channel4Max = 1984;
@@ -62,6 +50,11 @@ const int channel5Max = 1984;
 
 const int channel6Min = 989;
 const int channel6Max = 1984;
+
+/*When i was reading these values in using "transmitter.ino" these values weren't super consistent,
+ i dont know if thats going to be and issueor not
+*/
+
 
 const double hoverAngle = 0;
 double lastPErr = 0;
@@ -91,14 +84,11 @@ double w_2 = 0;
 double w_3 = 0;
 double w_4 = 0;
 
-  
+
 void setup() {
 
   analogReference(EXTERNAL);
   Serial.begin(9600);
-
-  delay(100);
-
   //setup input pins
   pinMode(pin, INPUT);
   pinMode(pin2, INPUT);
@@ -130,26 +120,25 @@ void setup() {
   accel.getSensor(&sensor);
   accelMax = sensor.max_value;
   accelMin = sensor.max_value;
-  
+
   //arming the motors
-  //LOOK HERE:this seems like a callibration type thing, do we actually need this?
   for (Arming_Time = 0; Arming_Time < 500; Arming_Time += 1)
   {
-    digitalWrite(pin,HIGH);
-    digitalWrite(pin2,HIGH);
-    digitalWrite(pin3,HIGH);
-    digitalWrite(pin4,HIGH);
+    digitalWrite(motor1,HIGH);
+    digitalWrite(motor2,HIGH);
+    digitalWrite(motor3,HIGH);
+    digitalWrite(motor4,HIGH);
     delayMicroseconds(1100);
-    digitalWrite(pin,LOW);
-    digitalWrite(pin2,LOW);
-    digitalWrite(pin3,LOW);
-    digitalWrite(pin4,LOW);
+    digitalWrite(motor1,LOW);
+    digitalWrite(motor2,LOW);
+    digitalWrite(motor3,LOW);
+    digitalWrite(motor4,LOW);
     delay(20-(Pulse/1000));
 
   }
 
   delay(100);
-  
+
 
 }
 
@@ -271,9 +260,9 @@ void loop() {
   rollOut = kp2 * rError;
   lastRErr = rError;
 
-  
+
   lastTime = now;
-  
+
   //these are all calculations that have to be done but im not quite sure how to
   //arrange all of them exactly
 
@@ -298,15 +287,15 @@ void loop() {
   if(w_2 < 1200) w_2 = 1200;
   if(w_3 < 1200) w_3 = 1200;
   if(w_4 < 1200) w_4 = 1200;
-  
+
   if(w_1 > 2000) w_1 = 2000;
   if(w_2 > 2000) w_2 = 2000;
   if(w_3 > 2000) w_3 = 2000;
   if(w_4 > 2000) w_4 = 2000;
 
-   
+
   writeAll(motor1, w_1, motor2, w_2, motor3, w_3, motor4, w_4);
-  
+
 }
 
 void writeAll(int motor1, double w_1, int motor2, double w_2, int motor3, double w_3, int motor4, double w_4)
@@ -348,16 +337,16 @@ void readAccel()
   long yReading = 0;
   long zReading = 0;
   delay(1);
-  
+
   for (int i = 0; i < sampleSize; i++)
   {
-    sensors_event_t event; 
+    sensors_event_t event;
     accel.getEvent(&event);
     xReading += event.acceleration.x;
     yReading += event.acceleration.y;
     zReading += event.acceleration.z;
   }
-  
+
   xRaw = xReading/sampleSize;
   yRaw = yReading/sampleSize;
   zRaw = zReading/sampleSize;
@@ -373,16 +362,16 @@ float error = 0; //initial value
 
 float gyroBias = 0.003;
 float accelVar = 0.001;
-//these are suggested, 
+//these are suggested,
 //supposedly well balanced values for these variables
 
-float P [2][2] = {{1000., 0.}, {0., 1000.}}; 
+float P [2][2] = {{1000., 0.}, {0., 1000.}};
 //# initial uncertainty matrix
 
 float R = 0.03;
 //# measurement uncertainty -- some suggested constant correlated with how accurate our selnsors are. may be non-optimal
 
-float K [2] = {0, 0}; 
+float K [2] = {0, 0};
 //kalman gain gets updated over time to sshift weight to accelerometer, and away from the gyroscope
 
 float S; //some intermediate value in the algorithm
@@ -406,9 +395,9 @@ void kalman(float &accelIn, float &gyroIn, float &angle)
 {
     // PREDICTION STEP
     rate = gyroIn - gyroBias;  //offset accounting for bias
-    angle += dt * rate;        
-    //^^^ predicts angle based on millis(). 
-    //might have to call millis() again to see if it gets more accurate. 
+    angle += dt * rate;
+    //^^^ predicts angle based on millis().
+    //might have to call millis() again to see if it gets more accurate.
     //leaving as- is for now, or just forgo this altogether
 
     P[0][0] += dt * (dt*P[1][1] - P[0][1] - P[1][0] + accelVar);
@@ -441,7 +430,6 @@ void kalman(float &accelIn, float &gyroIn, float &angle)
     P[0][1] -= K[0] * P01_temp;
     P[1][0] -= K[1] * P00_temp;
     P[1][1] -= K[1] * P01_temp;
-    // Updates uncertainty matrix 
+    // Updates uncertainty matrix
     //based on gain and predicted uncertainty
 }
-
