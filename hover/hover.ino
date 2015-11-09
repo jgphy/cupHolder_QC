@@ -1,3 +1,11 @@
+#include <Adafruit_L3GD20.h>
+
+#include <Adafruit_L3GD20_U.h>
+#include <Adafruit_LSM303_U.h>
+#include <math.h> //included a math library for trig stuff
+#include <Adafruit_BMP085_U.h>
+#include <Adafruit_10DOF.h>
+#include <Adafruit_Sensor.h>
 #include <Wire.h>
 
 /*
@@ -5,37 +13,17 @@ Most of this stuff is just combining the accelerometer and gyroscope stuff that
 we found online, i'll comment where i added stuff
 ALSO i added a bunch of comments that probably aren't necessary
 */
-#include <math.h> //included a math library for trig stuff
+
 //first part comes straight from the gyroTest we dowloaded
-#include <Adafruit_L3GD20.h>
+//Adafruit_L3GD20_Unified gyro = Adafruit_L3GD20_Unified(20);
 Adafruit_L3GD20 gyro;
+Adafruit_LSM303_Accel_Unified accel = Adafruit_LSM303_Accel_Unified(54321);
+
 /*
 we don't need xGyro yGyro and zGyro like in accelerometer because we're using the Adafruit_L3GD20 library thing
 I dont know how i feel about not really knowing whats happening behind the scenes of that sensor
 */
 
-//now the accelerometer part
-const int xAccInput = A0;
-const int yAccInput = A1;
-const int zAccInput = A2;
-
-//WHICH PINS ARE BEING USED UP by the gyroscope?????
-//IN the adafruit website it says just 4 and 5 which seems to good to be true
-
-// Raw Ranges:
-/*
-need to callibrate acccelerometer first using accelCalibration.ino then write down
-these values so that we dont have to callibrate it every time
-THESE values are temporary unti we get the actual values
-*/
-int xRawMin = 404;
-int xRawMax = 610;
-
-int yRawMin = 401;
-int yRawMax = 609;
-
-int zRawMin = 418;
-int zRawMax = 630;
 int dt = 10;//
 
 // Take multiple samples to reduce noise
@@ -51,22 +39,65 @@ int Arming_Time=0;
 int pin=3, pin2=5, pin3=6, pin4=9, pin5=10, pin6=11; // these are all the pins that can use pulseIn()
 //maybe change this to channel1=3,channel2=5,channel3=6,channel4=9,channel5=10,channl6=11
 //also in 'hover mode' we're only using one channel thats going to be throttle
-int motor1=2, motor2=4, motor3=12, motor4=3;         //pins we're going to use for output
+
+int motor1=2, motor2=4, motor3=12, motor4=13;         //pins we're going to use for output
 //note:we're not using arduino's analogwrite() which is their built in pwm
 
 //I think we need some Receiver stuff here so i'll add what i think it is
-const int channel1Min= 0;
-const int channel1Max=1000; //not real values we need to check what these are
 
+const int channel1Min = 995;
+const int channel1Max = 1984;
+ 
+const int channel2Min = 990;
+const int channel2Max = 1984; 
+
+const int channel3Min = 990;
+const int channel3Max = 1984; 
+
+const int channel4Min = 1018;
+const int channel4Max = 1984;
+
+const int channel5Min = 989;
+const int channel5Max = 1984;
+
+const int channel6Min = 989;
+const int channel6Max = 1984;
+
+const double hoverAngle = 0;
+double lastPErr = 0;
+double pErrSum = 0;
+double pitchOut = 0;
+double kp = 1;
+
+double lastRErr = 0;
+double rErrSum = 0;
+double rollOut = 0;
+double kp2 = 1;
 
 const float pi=3.14159;
 
-unsigned long lastTime;
+unsigned long lastTime = 0;
+unsigned long now;
 
+double xRaw = 0;
+double yRaw = 0;
+double zRaw = 0;
+
+double accelMax;
+double accelMin;
+
+double w_1 = 0;
+double w_2 = 0;
+double w_3 = 0;
+double w_4 = 0;
+
+  
 void setup() {
 
   analogReference(EXTERNAL);
   Serial.begin(9600);
+
+  delay(100);
 
   //setup input pins
   pinMode(pin, INPUT);
@@ -88,6 +119,18 @@ void setup() {
     Serial.println("You fucked up the wiring for the gyro...bitch");
     while (1);
   }
+  if(!accel.begin())
+  {
+    /* There was a problem detecting the ADXL345 ... check your connections */
+    Serial.println("Ooops, no LSM303 detected ... Check your wiring!");
+    while(1);
+  }
+
+  sensor_t sensor;
+  accel.getSensor(&sensor);
+  accelMax = sensor.max_value;
+  accelMin = sensor.max_value;
+  
   //arming the motors
   //LOOK HERE:this seems like a callibration type thing, do we actually need this?
   for (Arming_Time = 0; Arming_Time < 500; Arming_Time += 1)
@@ -105,20 +148,22 @@ void setup() {
 
   }
 
+  delay(100);
+  
+
 }
 
 void loop() {
   //read accelerometer stuff
-  int xRaw = ReadAxis(xAccInput);
-  int yRaw = ReadAxis(yAccInput);
-  int zRaw = ReadAxis(zAccInput);
+  readAccel(); //sets x- y- and z- raw;
+  now = millis();
 
   // Convert raw values to 'milli-Gs"
-  long xScaled = map(xRaw, xRawMin, xRawMax, -1000, 1000);
+  long xScaled = map(xRaw, accelMin, accelMax, -1000, 1000);
   //might have to change this -1000 to 1000 cause i don't think its actually going to give us G's
   //actually i don't think it'll matter, but it's late at this point
-  long yScaled = map(yRaw, yRawMin, yRawMax, -1000, 1000);
-  long zScaled = map(zRaw, zRawMin, zRawMax, -1000, 1000);
+  long yScaled = map(yRaw, accelMin, accelMax, -1000, 1000);
+  long zScaled = map(zRaw, accelMin, accelMax, -1000, 1000);
   /*
   map is a built in function map(value, fromLow, fromHigh, toLow, toHigh)
   you guys can look it up but essentially remaps a value xRaw that is within some
@@ -154,18 +199,27 @@ void loop() {
   within 10ms
   */
 
-  int sensorVal1, sensorVal2, sensorVal3,sensorVal4;  //why were these started in loop()
+  int channelVal1, channelVal2, channelVal3, channelVal4, channelVal5, channelVal6;  //why were these started in loop()
   //int sensorConvert1, sensorConvert2, sensorConvert3, sensorConvert4; dont think i need these anymore
-  sensorVal1= pulseIn(pin3,HIGH);
-  //sensorVal2= pulseIn(pin2, HIGH);
-  //sensorVal3= pulseIn(pin3, HIGH);
-  //sensorVal4= pulseIn(pin4, HIGH);
+  //channelVal1= pulseIn(pin3,HIGH);
+  //channelVal2= pulseIn(pin2, HIGH);
+  channelVal3= pulseIn(pin3, HIGH);
+  //channelVal4= pulseIn(pin4, HIGH);
+  channelVal5= pulseIn(pin5, HIGH);
+  channelVal5= pulseIn(pin6, HIGH);
 
-  //for this hover function im going to use sensorval1 as a throttle
+  //for this hover function im going to use channelVal1 as a throttle
   //1200 and 2000 come from the range we had for the esc before
-  sensorVal1= map(sensorVal1,channel1Min,channel1Max,1200,2000);
-  sensorVal1= constrain(sensorVal1,1200,2000);
+  channelVal3= map(channelVal3,channel3Min,channel3Max,1200,2000);
+  channelVal3= constrain(channelVal3,1200,2000);
 
+  channelVal5 = map(channelVal5, channel5Min, channel5Max, 0, 2);
+  channelVal5 = constrain(channelVal5, 0, 2);
+  channelVal6 = map(channelVal6, channel6Min, channel6Max, 0, 2);
+  channelVal6 = constrain(channelVal6, 0, 2);
+
+  kp  = channelVal5;
+  kp2 = channelVal6;
   /*
   at this point we've read every input that we would need
   it doesnt seem so bad right now, but im a bit worried about the delays that
@@ -190,38 +244,123 @@ void loop() {
 
   //setting up all the stuff that i need to figure out at some point
   //first need to get angle from accelerometer
-  int tiltangle =0;
-  int pitchAngle = atan2(xAccel,sqrt((yAccel*yAccel)+(zAccel*zAccel))) * RAD_TO_DEG;
-
+  double tiltangle = 0;
+  double pitchAngle = findPitch(xAccel, yAccel, zAccel);
+  double rollAngle =  findRoll(xAccel, zAccel);
   //you can also get angle by usin the gyroscope
   //only focusing on one axis at this point
 
   dt = 10;//
-  double deg=zGyro * dt;  //this doesnt actually give anything at this point
-
+  double pitchDeg = zGyro * dt;  //this doesnt actually give anything at this point
   //using a complementary filter
-  double angle = .98*(tiltangle+deg) +.02*pitchAngle;
+  double finalPitchAngle = .98*(tiltangle + pitchDeg) +.02*pitchAngle;
   // now to "hover" we want our angle to be zero
-  double offset =0-angle;
+  double pError = hoverAngle - finalPitchAngle;
+  pErrSum += pError;
+  double dPErr = pError - lastPErr;
+  pitchOut = kp * pError;
+  lastPErr = pError;
 
+  double rollDeg = yGyro * dt;  //this doesnt actually give anything at this point
+  //using a complementary filter
+  double finalRollAngle = .98*(tiltangle + rollDeg) +.02*rollAngle;
+  // now to "hover" we want our angle to be zero
+  double rError = hoverAngle - finalRollAngle;
+  rErrSum += rError;
+  double dRErr = rError - lastRErr;
+  rollOut = kp2 * rError;
+  lastRErr = rError;
+
+  
+  lastTime = now;
+  
   //these are all calculations that have to be done but im not quite sure how to
   //arrange all of them exactly
 
+   w_1 += channelVal3 - w_1;
+   w_2 += channelVal3 - w_2;
+   w_3 += channelVal3 - w_3;
+   w_4 += channelVal3 - w_4;
+
+   w_1 += w_1 * rollOut / 2;
+   w_4 += w_4 * rollOut / 2;
+
+   w_2 += -w_2 * rollOut /2;
+   w_3 += -w_3 * rollOut /2;
+
+   w_1 += w_1 * pitchOut / 2;
+   w_3 += w_3 * pitchOut / 2;
+
+   w_2 += -w_2 * pitchOut /2;
+   w_4 += -w_4 * pitchOut /2;
+
+  if(w_1 < 1200) w_1 = 1200;
+  if(w_2 < 1200) w_2 = 1200;
+  if(w_3 < 1200) w_3 = 1200;
+  if(w_4 < 1200) w_4 = 1200;
+  
+  if(w_1 > 2000) w_1 = 2000;
+  if(w_2 > 2000) w_2 = 2000;
+  if(w_3 > 2000) w_3 = 2000;
+  if(w_4 > 2000) w_4 = 2000;
+
+   
+  writeAll(motor1, w_1, motor2, w_2, motor3, w_3, motor4, w_4);
+  
+}
+
+void writeAll(int motor1, double w_1, int motor2, double w_2, int motor3, double w_3, int motor4, double w_4)
+{
+ digitalWrite(motor1,HIGH);
+ delayMicroseconds(w_1);
+ digitalWrite(motor1,LOW);
+
+
+ digitalWrite(motor2,HIGH);
+ delayMicroseconds(w_2);
+ digitalWrite(motor2,LOW);
+
+ digitalWrite(motor3,HIGH);
+ delayMicroseconds(w_3);
+ digitalWrite(motor3,LOW);
+
+ digitalWrite(motor4,HIGH);
+ delayMicroseconds(w_4);
+ digitalWrite(motor4,LOW);
 }
 
 
+double findPitch(double xAccel, double yAccel, double zAccel)
+{
+  return atan2(xAccel,sqrt((yAccel*yAccel)+(zAccel*zAccel))) * RAD_TO_DEG;
+}
+
+double findRoll(double xAccel, double zAccel)
+{
+  return atan2(-xAccel, zAccel) * RAD_TO_DEG;
+}
+
 //this read axis just gets 10 readings from the accelerometer then takes the average
 //to get something more accurare
-int ReadAxis(int axisPin)
+void readAccel()
 {
-  long reading = 0;
-  analogRead(axisPin);
+  long xReading = 0;
+  long yReading = 0;
+  long zReading = 0;
   delay(1);
+  
   for (int i = 0; i < sampleSize; i++)
   {
-    reading += analogRead(axisPin);
+    sensors_event_t event; 
+    accel.getEvent(&event);
+    xReading += event.acceleration.x;
+    yReading += event.acceleration.y;
+    zReading += event.acceleration.z;
   }
-  return reading/sampleSize; //returns an average
+  
+  xRaw = xReading/sampleSize;
+  yRaw = yReading/sampleSize;
+  zRaw = zReading/sampleSize;
 }
 
 
