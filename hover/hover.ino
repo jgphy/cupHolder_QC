@@ -1,7 +1,7 @@
 #include <Adafruit_L3GD20.h>
 #include <Adafruit_L3GD20_U.h>
 #include <Adafruit_LSM303_U.h>
-#include <math.h> //included a math library for trig stuff
+#include <math.h>
 #include <Adafruit_BMP085_U.h>
 #include <Adafruit_10DOF.h>
 #include <Adafruit_Sensor.h>
@@ -83,6 +83,7 @@ double w_1 = 0;
 double w_2 = 0;
 double w_3 = 0;
 double w_4 = 0;
+double w   = 0; 
 
 
 void setup() {
@@ -112,7 +113,7 @@ void setup() {
   if(!accel.begin())
   {
     /* There was a problem detecting the ADXL345 ... check your connections */
-    Serial.println("Ooops, no LSM303 detected ... Check your wiring!");
+    Serial.println("Ooops, no LSM303 detected ... Check your wiring...bitch!");
     while(1);
   }
 
@@ -141,6 +142,10 @@ void setup() {
 
 
 }
+
+
+
+
 
 void loop() {
   //read accelerometer stuff
@@ -188,59 +193,48 @@ void loop() {
   within 10ms
   */
 
-  int channelVal1, channelVal2, channelVal3, channelVal4, channelVal5, channelVal6;  //why were these started in loop()
+  double channelVal1, channelVal2, channelVal3, channelVal4, channelVal5, channelVal6;  //why were these started in loop()
   //int sensorConvert1, sensorConvert2, sensorConvert3, sensorConvert4; dont think i need these anymore
   //channelVal1= pulseIn(pin3,HIGH);
   //channelVal2= pulseIn(pin2, HIGH);
-  channelVal3= pulseIn(pin3, HIGH);
+  channelVal3= pulseIn(pin3, HIGH);   //throttle 
   //channelVal4= pulseIn(pin4, HIGH);
-  channelVal5= pulseIn(pin5, HIGH);
-  channelVal5= pulseIn(pin6, HIGH);
+  channelVal5= pulseIn(pin5, HIGH);  //kp value for pitch angle PID
+  channelVal5= pulseIn(pin6, HIGH);  //kp value for roll angle  PID 
 
   //for this hover function im going to use channelVal1 as a throttle
   //1200 and 2000 come from the range we had for the esc before
   channelVal3= map(channelVal3,channel3Min,channel3Max,1200,2000);
   channelVal3= constrain(channelVal3,1200,2000);
 
-  channelVal5 = map(channelVal5, channel5Min, channel5Max, 0, 2);
+  channelVal5 = map(channelVal5, channel5Min, channel5Max, 0, 2);   //0 to 2 are just numbers that i picked, probably need to manually check these
   channelVal5 = constrain(channelVal5, 0, 2);
   channelVal6 = map(channelVal6, channel6Min, channel6Max, 0, 2);
   channelVal6 = constrain(channelVal6, 0, 2);
 
   kp  = channelVal5;
   kp2 = channelVal6;
+  w   = channelVal3;
+  
   /*
-  at this point we've read every input that we would need
-  it doesnt seem so bad right now, but im a bit worried about the delays that
-  we're introducing when we actually do outputs to the esc's
-  There are several things i have questions about in my head
 
-  for now im just going to work with two motors and try to balance them
-
-  as a first attemp what im going to do is  say that both of the motors should throttle
-  to whatever its receiving and then that one of them should go faster or slower
-  deping on the orientation
-
-  later on what we should do is either have an altitude sensor so we can set
-  which motor goes faster or slower depends on which action wilk keep the quadcopter
-  at the same height
   first thing to do is to use the accelerometer and gyroscope to get an orientation
   the second thing to do is use that orientation and change the ouput of one of the motors
   which is the PID algorith that im first just going to write as a P algorithm
   but i'll do that tomorrow
+  
   */
 
+  //first need to get the pitch and the roll angles
+  //NOTE:QUADCOPTER FRONT IS FACING +X DIRECTION
 
-  //setting up all the stuff that i need to figure out at some point
-  //first need to get angle from accelerometer
   double tiltangle = 0;
   double pitchAngle = findPitch(xAccel, yAccel, zAccel);
   double rollAngle =  findRoll(xAccel, zAccel);
-  //you can also get angle by usin the gyroscope
-  //only focusing on one axis at this point
+  //these values are from the acceleremoter 
 
   dt = 10;//
-  double pitchDeg = zGyro * dt;  //this doesnt actually give anything at this point
+  double pitchDeg = zGyro * dt; //angle using the gyroscope, not sure if this should be zGyro or another axis
   //using a complementary filter
   double finalPitchAngle = .98*(tiltangle + pitchDeg) +.02*pitchAngle;
   // now to "hover" we want our angle to be zero
@@ -250,9 +244,13 @@ void loop() {
   pitchOut = kp * pError;
   lastPErr = pError;
 
-  double rollDeg = yGyro * dt;  //this doesnt actually give anything at this point
+  double rollDeg = yGyro * dt; //not sure if its the correct axis
+  
+  //COMPLEMENTARY FILTER NEEDS TO BE REPLACED WITH KALMAN FILTER!!!!!
   //using a complementary filter
   double finalRollAngle = .98*(tiltangle + rollDeg) +.02*rollAngle;
+  
+
   // now to "hover" we want our angle to be zero
   double rError = hoverAngle - finalRollAngle;
   rErrSum += rError;
@@ -266,10 +264,10 @@ void loop() {
   //these are all calculations that have to be done but im not quite sure how to
   //arrange all of them exactly
 
-   w_1 += channelVal3 - w_1;
-   w_2 += channelVal3 - w_2;
-   w_3 += channelVal3 - w_3;
-   w_4 += channelVal3 - w_4;
+   w_1 += channelVal3 - w;
+   w_2 += channelVal3 - w;
+   w_3 += channelVal3 - w;
+   w_4 += channelVal3 - w;
 
    w_1 += w_1 * rollOut / 2;
    w_4 += w_4 * rollOut / 2;
@@ -319,15 +317,22 @@ void writeAll(int motor1, double w_1, int motor2, double w_2, int motor3, double
 }
 
 
+
+
 double findPitch(double xAccel, double yAccel, double zAccel)
 {
   return atan2(xAccel,sqrt((yAccel*yAccel)+(zAccel*zAccel))) * RAD_TO_DEG;
 }
 
+
+
 double findRoll(double xAccel, double zAccel)
 {
   return atan2(-xAccel, zAccel) * RAD_TO_DEG;
 }
+
+
+
 
 //this read axis just gets 10 readings from the accelerometer then takes the average
 //to get something more accurare
