@@ -27,7 +27,7 @@ int Arming_Time=0;
 int pin=3, pin2=5, pin3=6, pin4=9, pin5=10, pin6=11; // these are all the pins that can use pulseIn()
 //maybe change this to channel1=3,channel2=5,channel3=6,channel4=9,channel5=10,channl6=11
 //also in 'hover mode' we're only using one channel thats going to be throttle
-int motor1=2, motor2=4, motor3=12, motor4=3;         //pins we're going to use for output
+int motor1=2, motor2=4, motor3=12, motor4=13;         //pins we're going to use for output
 //note:we're not using arduino's analogwrite() which is their built in pwm
 
 //I think we need some Receiver stuff here so i'll add what i think it is
