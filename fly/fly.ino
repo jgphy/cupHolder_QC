@@ -1,5 +1,23 @@
 
 #include <math.h> //included a math library for trig stuff
+#include <Adafruit_L3GD20.h>
+#include <Adafruit_L3GD20_U.h>
+#include <Adafruit_LSM303_U.h>
+#include <Adafruit_BMP085_U.h>
+#include <Adafruit_10DOF.h>
+#include <Adafruit_Sensor.h>
+#include <Wire.h>
+
+//the includes might make the the file not load in jay's computer, gotta figure that out
+
+
+
+//first part comes straight from the gyroTest we dowloaded
+//Adafruit_L3GD20_Unified gyro = Adafruit_L3GD20_Unified(20);
+Adafruit_L3GD20 gyro;
+Adafruit_LSM303_Accel_Unified accel = Adafruit_LSM303_Accel_Unified(54321);
+
+int dt= 10; 
 
 int Pulse = 1100;
 //Creating a global variable to keep track of the previous sensor value
@@ -32,7 +50,7 @@ int motor1=2, motor2=4, motor3=12, motor4=13;         //pins we're going to use 
 
 //I think we need some Receiver stuff here so i'll add what i think it is
 const int channel1Min= 995;
-const int channel1Max= 1984; //not real values we need to check what these are
+const int channel1Max= 1984;
 
 const int channel2Min = 990;
 const int channel2Max = 1984;
@@ -51,11 +69,16 @@ const int channel6Max = 1984;
 
 const float pi=3.14159;
 
-unsigned long lastTime = 0;
-unsigned long now;
-double Output;
-double errSum, lastErr;
-double kp=1, ki=1, kd=1;
+const double hoverAngle = 0;
+double lastPErr = 0;
+double pErrSum = 0;
+double pitchOut = 0;
+double kp = 1,ki=1,kp=1;
+
+double lastRErr = 0;
+double rErrSum = 0;
+double rollOut = 0;
+double kp2 =1,ki2=1,kp2=1;
 
 void setup() {
 
@@ -83,6 +106,18 @@ void setup() {
     Serial.println("You fucked up the wiring for the gyro...bitch");
     while (1);
   }
+  if(!accel.begin())
+  {
+    /* There was a problem detecting the ADXL345 ... check your connections */
+    Serial.println("Ooops, no LSM303 detected ... Check your wiring...bitch!");
+    while(1);
+  }
+
+  sensor_t sensor;
+  accel.getSensor(&sensor);
+  accelMax = sensor.max_value;
+  accelMin = sensor.max_value;
+
   //arming the motors
   //LOOK HERE:this seems like a callibration type thing, do we actually need this?
   for (Arming_Time = 0; Arming_Time < 500; Arming_Time += 1)
@@ -104,7 +139,6 @@ void setup() {
 
 void loop() {
   now = millis();
-  int hoverAngle = 0;
   int timeChange = now - lastTime;
 
   if(timeChange >=sampleRate)
@@ -517,4 +551,29 @@ void writeAll(int motor1, double w_1, int motor2, double w_2, int motor3, double
   digitalWrite(motor4,HIGH);
   delayMicroseconds(w_4);
   digitalWrite(motor4,LOW);
+}
+
+
+
+//this read axis just gets 10 readings from the accelerometer then takes the average
+//to get something more accurare
+void readAccel()
+{
+  long xReading = 0;
+  long yReading = 0;
+  long zReading = 0;
+  delay(1);
+
+  for (int i = 0; i < sampleSize; i++)
+  {
+    sensors_event_t event;
+    accel.getEvent(&event);
+    xReading += event.acceleration.x;
+    yReading += event.acceleration.y;
+    zReading += event.acceleration.z;
+  }
+
+  xRaw = xReading/sampleSize;
+  yRaw = yReading/sampleSize;
+  zRaw = zReading/sampleSize;
 }
