@@ -24,11 +24,25 @@ int Pulse=1100;
 int STATE=1;
 int Arming_Time=0;
 
-int pin=3, pin2=5, pin3=6, pin4=9, pin5=10, pin6=11; // these are all the pins that can use pulseIn()
-//maybe change this to channel1=3,channel2=5,channel3=6,channel4=9,channel5=10,channl6=11
+int pin  = 3;
+int pin2 = 5;
+int pin3 = 6;
+int pin4 = 9;
+int pin5 = 10;
+int pin6 = 11; 
+
+
+// these are all the pins that can use pulseIn()
+//channel1=3,channel2=5,channel3=6,channel4=9,channel5=10,channl6=11
 //also in 'hover mode' we're only using one channel thats going to be throttle
 
-int motor1=2, motor2=4, motor3=12, motor4=13;         //pins we're going to use for output
+int motor1 = 2; //pin
+int motor2 = 4;
+int motor3 = 12;
+int motor4 = 13;         
+
+
+//pins we're going to use for output
 //note:we're not using arduino's analogwrite() which is their built in pwm
 
 //I think we need some Receiver stuff here so i'll add what i think it is
@@ -105,18 +119,19 @@ void setup() {
 
   //makes sure that the gyroscope is plugged in
   //We should think about adding a screen somewhere on the quadcopter to diagnose errors like this
-  if (!gyro.begin(gyro.L3DS20_RANGE_250DPS))
+  /*if (!gyro.begin(gyro.L3DS20_RANGE_250DPS))
   {
     Serial.println("You fucked up the wiring for the gyro...bitch");
     while (1);
   }
   if(!accel.begin())
   {
-    /* There was a problem detecting the ADXL345 ... check your connections */
+    /* There was a problem detecting the ADXL345 ... check your connections 
     Serial.println("Ooops, no LSM303 detected ... Check your wiring...bitch!");
     while(1);
   }
-
+  */
+  
   sensor_t sensor;
   accel.getSensor(&sensor);
   accelMax = sensor.max_value;
@@ -137,8 +152,6 @@ void setup() {
     delay(20-(Pulse/1000));
 
   }
-
-  delay(100);
 
 
 }
@@ -193,14 +206,22 @@ void loop() {
   within 10ms
   */
 
-  double channelVal1, channelVal2, channelVal3, channelVal4, channelVal5, channelVal6;  //why were these started in loop()
+  double channelVal1;
+  double channelVal2;
+  double channelVal3;
+  double channelVal4;
+  double channelVal5;
+  double channelVal6;  
+  //why were these started in loop()
   //int sensorConvert1, sensorConvert2, sensorConvert3, sensorConvert4; dont think i need these anymore
-  //channelVal1= pulseIn(pin3,HIGH);
-  //channelVal2= pulseIn(pin2, HIGH);
+
+  
+  channelVal1= pulseIn(pin,HIGH);
+  channelVal2= pulseIn(pin2, HIGH);
   channelVal3= pulseIn(pin3, HIGH);   //throttle 
-  //channelVal4= pulseIn(pin4, HIGH);
+  channelVal4= pulseIn(pin4, HIGH);
   channelVal5= pulseIn(pin5, HIGH);  //kp value for pitch angle PID
-  channelVal5= pulseIn(pin6, HIGH);  //kp value for roll angle  PID 
+  channelVal6= pulseIn(pin6, HIGH);  //kp value for roll angle  PID 
 
   //for this hover function im going to use channelVal1 as a throttle
   //1200 and 2000 come from the range we had for the esc before
@@ -298,19 +319,22 @@ void loop() {
 
 void writeAll(int motor1, double w_1, int motor2, double w_2, int motor3, double w_3, int motor4, double w_4)
 {
+ Serial.println("w: motor1");
  digitalWrite(motor1,HIGH);
  delayMicroseconds(w_1);
  digitalWrite(motor1,LOW);
 
-
+ Serial.println("w: motor2");
  digitalWrite(motor2,HIGH);
  delayMicroseconds(w_2);
  digitalWrite(motor2,LOW);
 
+ Serial.println("w: motor3");
  digitalWrite(motor3,HIGH);
  delayMicroseconds(w_3);
  digitalWrite(motor3,LOW);
 
+ Serial.println("w: motor4");
  digitalWrite(motor4,HIGH);
  delayMicroseconds(w_4);
  digitalWrite(motor4,LOW);
