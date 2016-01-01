@@ -26,10 +26,10 @@ int Arming_Time=0;
 
 int pin  = 3;
 int pin2 = 5;
-int pin3 = 6;
+int pin3 = 6;//in use
 int pin4 = 9;
-int pin5 = 10;
-int pin6 = 11; 
+int pin5 = 10;//in use
+int pin6 = 11;//in use
 
 
 // these are all the pins that can use pulseIn()
@@ -39,7 +39,7 @@ int pin6 = 11;
 int motor1 = 2; //pin
 int motor2 = 4;
 int motor3 = 12;
-int motor4 = 13;         
+int motor4 = 13;
 
 
 //pins we're going to use for output
@@ -97,7 +97,7 @@ double w_1 = 0;
 double w_2 = 0;
 double w_3 = 0;
 double w_4 = 0;
-double w   = 0; 
+double w   = 0;
 
 
 void setup() {
@@ -126,12 +126,12 @@ void setup() {
   }
   if(!accel.begin())
   {
-    /* There was a problem detecting the ADXL345 ... check your connections 
+    /* There was a problem detecting the ADXL345 ... check your connections
     Serial.println("Ooops, no LSM303 detected ... Check your wiring...bitch!");
     while(1);
   }
   */
-  
+
   sensor_t sensor;
   accel.getSensor(&sensor);
   accelMax = sensor.max_value;
@@ -211,22 +211,22 @@ void loop() {
   double channelVal3;
   double channelVal4;
   double channelVal5;
-  double channelVal6;  
+  double channelVal6;
   //why were these started in loop()
   //int sensorConvert1, sensorConvert2, sensorConvert3, sensorConvert4; dont think i need these anymore
 
-  
+
   channelVal1= pulseIn(pin,HIGH);
   channelVal2= pulseIn(pin2, HIGH);
-  channelVal3= pulseIn(pin3, HIGH);   //throttle 
+  channelVal3= pulseIn(pin3, HIGH);   //throttle
   channelVal4= pulseIn(pin4, HIGH);
   channelVal5= pulseIn(pin5, HIGH);  //kp value for pitch angle PID
-  channelVal6= pulseIn(pin6, HIGH);  //kp value for roll angle  PID 
+  channelVal6= pulseIn(pin6, HIGH);  //kp value for roll angle  PID
 
   //for this hover function im going to use channelVal1 as a throttle
   //1200 and 2000 come from the range we had for the esc before
-  channelVal3= map(channelVal3,channel3Min,channel3Max,1200,2000);
-  channelVal3= constrain(channelVal3,1200,2000);
+  channelVal3= map(channelVal3,channel3Min,channel3Max,1100,2000);
+  channelVal3= constrain(channelVal3,1100,2000);
 
   channelVal5 = map(channelVal5, channel5Min, channel5Max, 0, 2);   //0 to 2 are just numbers that i picked, probably need to manually check these
   channelVal5 = constrain(channelVal5, 0, 2);
@@ -236,14 +236,14 @@ void loop() {
   kp  = channelVal5;
   kp2 = channelVal6;
   w   = channelVal3;
-  
+
   /*
 
   first thing to do is to use the accelerometer and gyroscope to get an orientation
   the second thing to do is use that orientation and change the ouput of one of the motors
   which is the PID algorith that im first just going to write as a P algorithm
   but i'll do that tomorrow
-  
+
   */
 
   //first need to get the pitch and the roll angles
@@ -252,7 +252,7 @@ void loop() {
   double tiltangle = 0;
   double pitchAngle = findPitch(xAccel, yAccel, zAccel);
   double rollAngle =  findRoll(xAccel, zAccel);
-  //these values are from the acceleremoter 
+  //these values are from the acceleremoter
 
   dt = 10;//
   double pitchDeg = zGyro * dt; //angle using the gyroscope, not sure if this should be zGyro or another axis
@@ -266,11 +266,11 @@ void loop() {
   lastPErr = pError;
 
   double rollDeg = yGyro * dt; //not sure if its the correct axis
-  
+
   //COMPLEMENTARY FILTER NEEDS TO BE REPLACED WITH KALMAN FILTER!!!!!
   //using a complementary filter
   double finalRollAngle = .98*(tiltangle + rollDeg) +.02*rollAngle;
-  
+
 
   // now to "hover" we want our angle to be zero
   double rError = hoverAngle - finalRollAngle;
