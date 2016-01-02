@@ -1,11 +1,8 @@
 #include <Adafruit_L3GD20.h>
-#include <Adafruit_L3GD20_U.h>
+
 #include <Adafruit_LSM303_U.h>
-#include <math.h>
-#include <Adafruit_BMP085_U.h>
-#include <Adafruit_10DOF.h>
-#include <Adafruit_Sensor.h>
-#include <Wire.h>
+
+#include <Adafruit_L3GD20_U.h>
 
 //first part comes straight from the gyroTest we dowloaded
 //Adafruit_L3GD20_Unified gyro = Adafruit_L3GD20_Unified(20);
@@ -101,10 +98,11 @@ double w   = 0;
 
 
 void setup() {
-
+  
   analogReference(EXTERNAL);
   Serial.begin(9600);
   //setup input pins
+  //Serial.println("BOFA...");
   pinMode(pin, INPUT);
   pinMode(pin2, INPUT);
   pinMode(pin3, INPUT);
@@ -116,9 +114,6 @@ void setup() {
   pinMode(motor4, OUTPUT);
 
 
-
-  //makes sure that the gyroscope is plugged in
-  //We should think about adding a screen somewhere on the quadcopter to diagnose errors like this
   /*if (!gyro.begin(gyro.L3DS20_RANGE_250DPS))
   {
     Serial.println("You fucked up the wiring for the gyro...bitch");
@@ -136,9 +131,10 @@ void setup() {
   accel.getSensor(&sensor);
   accelMax = sensor.max_value;
   accelMin = sensor.max_value;
-
+  
   //arming the motors
-  for (Arming_Time = 0; Arming_Time < 500; Arming_Time += 1)
+  //Serial.println("DEEZ NUTS");
+  for(int Arming_Time = 0; Arming_Time < 500; Arming_Time += 1)
   {
     digitalWrite(motor1,HIGH);
     digitalWrite(motor2,HIGH);
@@ -150,10 +146,13 @@ void setup() {
     digitalWrite(motor3,LOW);
     digitalWrite(motor4,LOW);
     delay(20-(Pulse/1000));
+    //Serial.println(Arming_Time);
 
   }
+  
+  //Serial.println("ending loop");
 
-
+  
 }
 
 
@@ -161,6 +160,7 @@ void setup() {
 
 
 void loop() {
+  Serial.println("In loop()");
   //read accelerometer stuff
   readAccel(); //sets x- y- and z- raw;
   now = millis();
