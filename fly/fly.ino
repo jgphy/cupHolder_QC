@@ -17,7 +17,7 @@
 Adafruit_L3GD20 gyro;
 Adafruit_LSM303_Accel_Unified accel = Adafruit_LSM303_Accel_Unified(54321);
 
-int dt= 10; 
+int dt= 10;
 
 int Pulse = 1100;
 //Creating a global variable to keep track of the previous sensor value
@@ -253,14 +253,27 @@ void loop() {
     double deg=zGyro*dt;  //this doesnt actually give anything at this point
 
     //using a complementary filter
-    double angle = .98*(tiltangle+deg) +.02*pitchAngle;
+    double finalPitchAngle = .98*(tiltangle+deg) +.02*pitchAngle;
     // now to "hover" we want our angle to be zero
-    double error =hoverAngle-angle; //error
-    errSum += error;                //sum of the errors, going to be used with the Integral part of the PID algorithm
-    double dErr = (error - lastErr);//diff of errors, going to be used with the derivative part
+    double error =hoverAngle-finalPitchAngle; //error
+    pErrSum += pError;                //sum of the errors, going to be used with the Integral part of the PID algorithm
+    double dPErr = (pError - lastPErr);//diff of errors, going to be used with the derivative part
     Output = kp * error; // + ki * errSum*sampleRate + kd * dErr/sampleRate;
-    lastErr = error;
+    lastPErr = pError;
     lastTime = now;
+
+    double rollDeg = yGyro * dt; //not sure if its the correct axis
+    //COMPLEMENTARY FILTER NEEDS TO BE REPLACED WITH KALMAN FILTER!!!!!
+    //using a complementary filter
+    double finalRollAngle = .98*(tiltangle + rollDeg) +.02*rollAngle;
+
+    // now to "hover" we want our angle to be zero
+    double rError = hoverAngle - finalRollAngle;
+    rErrSum += rError;
+    double dRErr = rError - lastRErr;
+    rollOut = kp2 * rError;
+    lastRErr = rError;
+
 
 
 /*
@@ -320,14 +333,14 @@ up and down(elevation on the z-axis):
 if(abs(throttleIn - oldChannelVal3) > minChange)
   {
     double change = throttleIn - oldChannelVal3;
-    if((w_1 + (change/4)) > 2000)
+    if((w_1 + (change)) > 2000)
     {
       w_1 = 2000;
       w_2 = 2000;
       w_3 = 2000;
       w_4 = 2000;
     }
-    else if((w_1 - (change/4)) < 1200)
+    else if((w_1 - (change)) < 1200)
     {
       w_1 = 1200;
       w_2 = 1200;
@@ -336,10 +349,10 @@ if(abs(throttleIn - oldChannelVal3) > minChange)
     }
     else
     {
-      w_1 += change/4;
-      w_2 += change/4;
-      w_3 += change/4;
-      w_4 += change/4;
+      w_1 += change;
+      w_2 += change;
+      w_3 += change;
+      w_4 += change;
 
     }
   }
@@ -442,12 +455,12 @@ if(abs(rollIn - oldChannelVal2) > minChange)
       w_3 -= (rollChange)/2;
 
     }
-    double newT = calculteTorque(w_1,w_2,w_3,w_4,pitchAngle,rollAngle);
+    double newT = calculateThrust(w_1,w_2,w_3,w_4,pitchAngle,rollAngle);
     double offsetT = 1 - newT;
-    w_1 += offsetT/4;
-    w_2 += offsetT/4;
-    w_3 += offsetT/4;
-    w_4 += offsetT/4;
+    w_1 += offsetT;
+    w_2 += offsetT;
+    w_3 += offsetT;
+    w_4 += offsetT;
 
   }
 
@@ -492,12 +505,12 @@ if(abs(pitchIn - oldChannelVal1) > minChange)
       w_3 -= (pitchChange)/2;
       w_4 -= (pitchChange)/2;
     }
-    double newPitchT = calculteTorque(w_1,w_2,w_3,w_4,pitchAngle,rollAngle);
+    double newPitchT = calculteThrust(w_1,w_2,w_3,w_4,pitchAngle,rollAngle);
     double offsetPT = 1 - newPitchT;
-    w_1 += offsetPT/4;
-    w_2 += offsetPT/4;
-    w_3 += offsetPT/4;
-    w_4 += offsetPT/4;
+    w_1 += offsetPT;
+    w_2 += offsetPT;
+    w_3 += offsetPT;
+    w_4 += offsetPT;
 }
 
 //saving old sensor vals;
