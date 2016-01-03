@@ -1,10 +1,13 @@
 #include <Adafruit_L3GD20_U.h>
 
 #include <Adafruit_L3GD20.h>
-
+//#include <Adafruit_L3GD20_U.h>
 #include <Adafruit_LSM303_U.h>
-
-#include <Adafruit_L3GD20_U.h>
+#include <math.h>
+#include <Adafruit_BMP085_U.h>
+#include <Adafruit_10DOF.h>
+#include <Adafruit_Sensor.h>
+#include <Wire.h>
 
 //first part comes straight from the gyroTest we dowloaded
 //Adafruit_L3GD20_Unified gyro = Adafruit_L3GD20_Unified(20);
@@ -41,6 +44,9 @@ int motor2 = 4;
 int motor3 = 12;
 int motor4 = 13;
 
+int xGyro = 0;
+int yGyro  = 0;
+int zGyro = 0;
 
 //pins we're going to use for output
 //note:we're not using arduino's analogwrite() which is their built in pwm
@@ -105,7 +111,6 @@ void setup() {
   analogReference(EXTERNAL);
   Serial.begin(9600);
   //setup input pins
-  //Serial.println("BOFA...");
   pinMode(pin, INPUT);
   pinMode(pin2, INPUT);
   pinMode(pin3, INPUT);
@@ -116,23 +121,12 @@ void setup() {
   pinMode(motor3, OUTPUT);
   pinMode(motor4, OUTPUT);
 
-<<<<<<< HEAD
-
-  /*if (!gyro.begin(gyro.L3DS20_RANGE_250DPS))
-||||||| merged common ancestors
-
-
-  //makes sure that the gyroscope is plugged in
-  //We should think about adding a screen somewhere on the quadcopter to diagnose errors like this
-  /*if (!gyro.begin(gyro.L3DS20_RANGE_250DPS))
-=======
  // Serial.println("Setting up...");
 
   //makes sure that the gyroscope is plugged in
   //We should think about adding a screen somewhere on the quadcopter to diagnose errors like this
   gyro.enableAutoRange(true);
   if (!gyro.begin())
->>>>>>> d0fa23d48088b9ffe0144606b99b92c40de13a70
   {
     Serial.println("Oops ... unable to initialize the GYRO. Check your wiring!");
     while (1);
@@ -152,8 +146,7 @@ void setup() {
   accelMin = sensor.max_value;
 
   //arming the motors
-  //Serial.println("DEEZ NUTS");
-  for(int Arming_Time = 0; Arming_Time < 500; Arming_Time += 1)
+  for (Arming_Time = 0; Arming_Time < 500; Arming_Time += 1)
   {
     digitalWrite(motor1,HIGH);
     digitalWrite(motor2,HIGH);
@@ -165,20 +158,32 @@ void setup() {
     digitalWrite(motor3,LOW);
     digitalWrite(motor4,LOW);
     delay(20-(Pulse/1000));
-    //Serial.println(Arming_Time);
 
   }
 
-  //Serial.println("ending loop");
-
+  Serial.println("Starting Loop");
 }
 
 
 
 void loop() {
+  //////////////////// SENSOR EVENT SETUP /////////////////
+  ////////////////////// V IMPORTANT //////////////////////
+  ////////////////////// DONT DELETE //////////////////////
 
+  sensors_event_t event; 
+  gyro.getEvent(&event);
+
+  sensors_event_t event2; 
+  accel.getEvent(&event2);
+
+  ///////////////////////////////////////////////////////// 
+  ///////////////////////////////////////////////////////// 
+  ///////////////////////////////////////////////////////// 
+  
+  //Serial.println("right before loop ");
   //read accelerometer stuff
-  readAccel(); //sets x- y- and z- raw;
+  readAccel(&event2); //sets x- y- and z- raw;
   now = millis();
   Serial.println("Scaling");
   // Convert raw values to 'milli-Gs"
@@ -210,17 +215,23 @@ void loop() {
   //now the gyroscope stuff
   //these should be in deg/s if not we have to convert them
   //one of us should look
-  gyro.read();
-  int xGyro = gyro.data.x;
-  int yGyro  = gyro.data.y;
-  int zGyro = gyro.data.z;
+  //gyro.read();
+
+  
+  //JUAN LOOK: they're in rad/s, so i converted them in the readGyro function
+  //that I wrote to match readAccel()
+  readGyro(&event); // sets xGyro, yGyro and zGyro
   Serial.println("probing Gyro");
+  
   /*
   at this point im not sure if there are delays written into the gyro.read()
   and im not sure how much delays are going to affect our errors
   everything for one 'reading of the sensors and update outout to esc' should happening
   within 10ms
   */
+  ////////// There are interrupts in the sensor reading functions but they shouldnt affect how quickly the code runs enough.
+  ////////// We should also consider using the built in PWM functions because they dont rely on us actually
+  ////////// writing pin high THEN delaying THEN writing pin low. Why did we do it this way again?
 
   double channelVal1;
   double channelVal2;
@@ -376,20 +387,21 @@ double findRoll(double xAccel, double zAccel)
 
 //this read axis just gets 10 readings from the accelerometer then takes the average
 //to get something more accurare
-void readAccel()
+
+void readAccel(sensors_event_t* event)
 {
   long xReading = 0;
   long yReading = 0;
   long zReading = 0;
-  delay(1);
+  //delay(1);
 
   for (int i = 0; i < sampleSize; i++)
   {
-    sensors_event_t event;
-    accel.getEvent(&event);
-    xReading += event.acceleration.x;
-    yReading += event.acceleration.y;
-    zReading += event.acceleration.z;
+    //sensors_event_t event;
+    //accel.getEvent(&event);
+    xReading += event->acceleration.x;
+    yReading += event->acceleration.y;
+    zReading += event->acceleration.z;
   }
 
   xRaw = xReading/sampleSize;
@@ -397,7 +409,26 @@ void readAccel()
   zRaw = zReading/sampleSize;
 }
 
+void readGyro(sensors_event_t* event)
+{
+  long xReading = 0;
+  long yReading = 0;
+  long zReading = 0;
+  //delay(1);
 
+  for (int i = 0; i < sampleSize; i++)
+  {
+    //sensors_event_t event;
+    //accel.getEvent(&event);
+    xReading += event->gyro.x;
+    yReading += event->gyro.y;
+    zReading += event->gyro.z;
+  }
+
+  xGyro = xReading * RAD_TO_DEG;
+  yGyro = yReading * RAD_TO_DEG;
+  zGyro = zReading * RAD_TO_DEG;
+}
 
 /////////////////////////////////////////////////////
 /////////////      KALMAN FILTER      ///////////////

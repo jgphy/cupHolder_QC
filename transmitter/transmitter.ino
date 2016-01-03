@@ -35,10 +35,11 @@ void setup() {
     delay(20-(Pulse/1000));
 
   }
-    Serial.println("ending loop");
+
 }
 
 void loop() {
+  Serial.print("poopie");
   channelInput=pulseIn(pin, HIGH);
   //Serial.println(channelInput);
   Serial.println("DEEZ NUTS");
