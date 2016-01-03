@@ -1,3 +1,5 @@
+#include <Adafruit_L3GD20_U.h>
+
 #include <Adafruit_L3GD20.h>
 #include <Adafruit_L3GD20_U.h>
 #include <Adafruit_LSM303_U.h>
@@ -9,8 +11,9 @@
 
 //first part comes straight from the gyroTest we dowloaded
 //Adafruit_L3GD20_Unified gyro = Adafruit_L3GD20_Unified(20);
-Adafruit_L3GD20 gyro;
+
 Adafruit_LSM303_Accel_Unified accel = Adafruit_LSM303_Accel_Unified(54321);
+Adafruit_L3GD20_Unified gyro = Adafruit_L3GD20_Unified(20);
 
 int dt = 10;//
 
@@ -119,18 +122,20 @@ void setup() {
 
   //makes sure that the gyroscope is plugged in
   //We should think about adding a screen somewhere on the quadcopter to diagnose errors like this
-  /*if (!gyro.begin(gyro.L3DS20_RANGE_250DPS))
+  gyro.enableAutoRange(true);
+  if (!gyro.begin())
   {
-    Serial.println("You fucked up the wiring for the gyro...bitch");
+    Serial.println("Oops ... unable to initialize the GYRO. Check your wiring!");
     while (1);
   }
+
+  /* Initialise the sensor */
   if(!accel.begin())
   {
-    /* There was a problem detecting the ADXL345 ... check your connections
-    Serial.println("Ooops, no LSM303 detected ... Check your wiring...bitch!");
+    /* There was a problem detecting the ADXL345 ... check your connections */
+    Serial.println("Ooops, no ACCELEROMETER detected ... Check your wiring!");
     while(1);
   }
-  */
 
   sensor_t sensor;
   accel.getSensor(&sensor);
