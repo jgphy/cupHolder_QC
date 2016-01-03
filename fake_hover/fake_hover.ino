@@ -1,16 +1,16 @@
-#include <Adafruit_L3GD20.h>
-#include <Adafruit_L3GD20_U.h>
-#include <Adafruit_LSM303_U.h>
+//#include <Adafruit_L3GD20.h>
+//#include <Adafruit_L3GD20_U.h>
+//#include <Adafruit_LSM303_U.h>
 #include <math.h>
-#include <Adafruit_BMP085_U.h>
-#include <Adafruit_10DOF.h>
-#include <Adafruit_Sensor.h>
+//#include <Adafruit_BMP085_U.h>
+//#include <Adafruit_10DOF.h>
+//#include <Adafruit_Sensor.h>
 #include <Wire.h>
 
 //first part comes straight from the gyroTest we dowloaded
 //Adafruit_L3GD20_Unified gyro = Adafruit_L3GD20_Unified(20);
-Adafruit_L3GD20 gyro;
-Adafruit_LSM303_Accel_Unified accel = Adafruit_LSM303_Accel_Unified(54321);
+//Adafruit_L3GD20 gyro;
+//Adafruit_LSM303_Accel_Unified accel = Adafruit_LSM303_Accel_Unified(54321);
 
 int dt = 10;//
 
@@ -132,10 +132,10 @@ void setup() {
   }
   */
 
-  sensor_t sensor;
-  accel.getSensor(&sensor);
-  accelMax = sensor.max_value;
-  accelMin = sensor.max_value;
+  //sensor_t sensor;
+  //accel.getSensor(&sensor);
+  accelMax = 0;
+  accelMin = 0;
 
   //arming the motors
   for (Arming_Time = 0; Arming_Time < 500; Arming_Time += 1)
@@ -161,7 +161,7 @@ void setup() {
 void loop() {
   //Serial.println("right before loop ");
   //read accelerometer stuff
-  readAccel(); //sets x- y- and z- raw;
+  //readAccel(); //sets x- y- and z- raw;
   now = millis();
   Serial.println("Scaling");
   // Convert raw values to 'milli-Gs"
@@ -193,10 +193,10 @@ void loop() {
   //now the gyroscope stuff
   //these should be in deg/s if not we have to convert them
   //one of us should look
-  gyro.read();
-  int xGyro = gyro.data.x;
-  int yGyro  = gyro.data.y;
-  int zGyro = gyro.data.z;
+  //gyro.read();
+  int xGyro = 0;
+  int yGyro  = 0;
+  int zGyro = 0;
   Serial.println("probing Gyro");
   /*
   at this point im not sure if there are delays written into the gyro.read()
@@ -368,11 +368,11 @@ void readAccel()
 
   for (int i = 0; i < sampleSize; i++)
   {
-    sensors_event_t event;
-    accel.getEvent(&event);
-    xReading += event.acceleration.x;
-    yReading += event.acceleration.y;
-    zReading += event.acceleration.z;
+    //sensors_event_t event;
+    //accel.getEvent(&event);
+    xReading += 0;//event.acceleration.x;
+    yReading += 0;//event.acceleration.y;
+    zReading += 0;//event.acceleration.z;
   }
 
   xRaw = xReading/sampleSize;

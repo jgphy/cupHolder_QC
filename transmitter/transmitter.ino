@@ -21,9 +21,12 @@ void setup() {
     delay(20-(Pulse/1000));
 
   }
+
+  Serial.print("poop");
 }
 
 void loop() {
+  Serial.print("poopie");
   channelInput=pulseIn(pin, HIGH);
   //Serial.println(channelInput);
 
