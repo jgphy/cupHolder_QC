@@ -33,6 +33,7 @@ int pin3 = 6;//in use
 int pin4 = 9;
 int pin5 = 10;//in use
 int pin6 = 11;//in use
+double oldChannelVal3=0;
 
 
 // these are all the pins that can use pulseIn()
@@ -262,7 +263,8 @@ void loop() {
 
   kp  = channelVal5;
   kp2 = channelVal6;
-  w   = channelVal3;
+  double throttleIn   = channelVal3; 
+  double minChange=50
   Serial.println("set W");
   /*
 
@@ -312,10 +314,32 @@ void loop() {
   //these are all calculations that have to be done but im not quite sure how to
   //arrange all of them exactly
 
-   w_1 += channelVal3 - w;
-   w_2 += channelVal3 - w;
-   w_3 += channelVal3 - w;
-   w_4 += channelVal3 - w;
+if(abs(throttleIn - oldChannelVal3) > minChange)
+  {
+    double change = throttleIn - oldChannelVal3;
+    if((w_1 + (change/4)) > 2000)
+    {
+      w_1 = 2000;
+      w_2 = 2000;
+      w_3 = 2000;
+      w_4 = 2000;
+    }
+    else if((w_1 - (change/4)) < 1200)
+    {
+      w_1 = 1200;
+      w_2 = 1200;
+      w_3 = 1200;
+      w_4 = 1200;
+    }
+    else
+    {
+      w_1 += change/4;
+      w_2 += change/4;
+      w_3 += change/4;
+      w_4 += change/4;
+
+    }
+  }
 
    w_1 += w_1 * rollOut / 2;
    w_4 += w_4 * rollOut / 2;
