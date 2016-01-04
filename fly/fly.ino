@@ -32,8 +32,7 @@ Adafruit_L3GD20_Unified gyro = Adafruit_L3GD20_Unified(20);
 
 double accelMax;
 double accelMin;
-
-int dt= 10; 
+int dt= 10;
 
 int Pulse = 1100;
 //Creating a global variable to keep track of the previous sensor value
@@ -70,7 +69,7 @@ int Arming_Time=0;
 int pin=3, pin2=5, pin3=6, pin4=9, pin5=10, pin6=11; // these are all the pins that can use pulseIn()
 //maybe change this to channel1=3,channel2=5,channel3=6,channel4=9,channel5=10,channl6=11
 //also in 'hover mode' we're only using one channel thats going to be throttle
-int motor1=2, motor2=4, motor3=12, motor4=3;         //pins we're going to use for output
+int motor1=2, motor2=4, motor3=12, motor4=13;         //pins we're going to use for output
 //note:we're not using arduino's analogwrite() which is their built in pwm
 
 //I think we need some Receiver stuff here so i'll add what i think it is
@@ -111,7 +110,7 @@ int yGyro  = 0;
 int zGyro = 0;
 
 double tiltangle = 0;
-double pitchAngle; 
+double pitchAngle;
 double rollAngle;
 
 double pitchDeg;
@@ -186,10 +185,10 @@ void setup() {
 void loop() {
   now = millis();
   int timeChange = now - lastTime;
-  sensors_event_t event; 
+  sensors_event_t event;
   gyro.getEvent(&event);
 
-  sensors_event_t event2; 
+  sensors_event_t event2;
   accel.getEvent(&event2);
   readAccel(&event2); //sets x- y- and z- raw;
   readGyro(&event); // sets xGyro, yGyro and zGyro
@@ -269,34 +268,23 @@ Serial.println(ChannelVal4);
   rollAngle =  findRoll(xAccel, zAccel);
   //these values are from the acceleremoter
 
-  dt = 10;//
-  pitchDeg = zGyro * dt; //angle using the gyroscope, not sure if this should be zGyro or another axis
-  //using a complementary filter
-  finalPitchAngle = .98*(tiltangle + pitchDeg) +.02*pitchAngle;
-  // now to "hover" we want our angle to be zero
-  pError = hoverAngle - finalPitchAngle;
-  pErrSum += pError;
-  dPErr = pError - lastPErr;
-  pitchOut = kp * pError;
-  lastPErr = pError;
-
-  rollDeg = yGyro * dt; //not sure if its the correct axis
-
-  //COMPLEMENTARY FILTER NEEDS TO BE REPLACED WITH KALMAN FILTER!!!!!
-  //using a complementary filter
-  finalRollAngle = .98*(tiltangle + rollDeg) +.02*rollAngle;
-
-
-  // now to "hover" we want our angle to be zero
-  rError = hoverAngle - finalRollAngle;
-  rErrSum += rError;
-  dRErr = rError - lastRErr;
-  rollOut = kp2 * rError;
-  lastRErr = rError;
-
-
   lastTime = now;
 
+    //using a complementary filter
+    double finalPitchAngle = .98*(tiltangle+deg) +.02*pitchAngle;
+    // now to "hover" we want our angle to be zero
+    double error =hoverAngle-finalPitchAngle; //error
+    pErrSum += pError;                //sum of the errors, going to be used with the Integral part of the PID algorithm
+    double dPErr = (pError - lastPErr);//diff of errors, going to be used with the derivative part
+    Output = kp * error; // + ki * errSum*sampleRate + kd * dErr/sampleRate;
+    lastPErr = pError;
+    lastTime = now;
+
+
+    double rollDeg = yGyro * dt; //not sure if its the correct axis
+    //COMPLEMENTARY FILTER NEEDS TO BE REPLACED WITH KALMAN FILTER!!!!!
+    //using a complementary filter
+    double finalRollAngle = .98*(tiltangle + rollDeg) +.02*rollAngle;
 
 /*
                                                                 FLIGHT DYNAMICS:
@@ -355,7 +343,7 @@ up and down(elevation on the z-axis):
 if(abs(throttleIn - oldChannelVal3) > minChange)
   {
     double change = throttleIn - oldChannelVal3;
-    if((w_1 + (change/4)) > 2000)
+    if((w_1 + (change)) > 2000)
     {
       w_1 = 2000;
       w_2 = 2000;
@@ -371,10 +359,10 @@ if(abs(throttleIn - oldChannelVal3) > minChange)
     }
     else
     {
-      w_1 += change/4;
-      w_2 += change/4;
-      w_3 += change/4;
-      w_4 += change/4;
+      w_1 += change;
+      w_2 += change;
+      w_3 += change;
+      w_4 += change;
 
     }
   }
@@ -479,10 +467,10 @@ if(abs(rollIn - oldChannelVal2) > minChange)
     }
     double newT = calculateThrust(w_1,w_2,w_3,w_4,pitchAngle,rollAngle);
     double offsetT = 1 - newT;
-    w_1 += offsetT/4;
-    w_2 += offsetT/4;
-    w_3 += offsetT/4;
-    w_4 += offsetT/4;
+    w_1 += offsetT;
+    w_2 += offsetT;
+    w_3 += offsetT;
+    w_4 += offsetT;
 
   }
 
@@ -527,12 +515,14 @@ if(abs(pitchIn - oldChannelVal1) > minChange)
       w_3 -= (pitchChange)/2;
       w_4 -= (pitchChange)/2;
     }
-    double newPitchT = calculateThrust(w_1,w_2,w_3,w_4,pitchAngle,rollAngle);
+
+
+    double newPitchT = calculteThrust(w_1,w_2,w_3,w_4,pitchAngle,rollAngle);
     double offsetPT = 1 - newPitchT;
-    w_1 += offsetPT/4;
-    w_2 += offsetPT/4;
-    w_3 += offsetPT/4;
-    w_4 += offsetPT/4;
+    w_1 += offsetPT;
+    w_2 += offsetPT;
+    w_3 += offsetPT;
+    w_4 += offsetPT;
 }
 
 //saving old sensor vals;
@@ -635,7 +625,7 @@ void readGyro(sensors_event_t* event)
     xReading += event->gyro.x;
     yReading += event->gyro.y;
     zReading += event->gyro.z;
-    
+
   }
 
   xGyro = xReading * RAD_TO_DEG;
@@ -654,8 +644,9 @@ double findPitch(double xAccel, double yAccel, double zAccel)
 
 
 
+
+
 double findRoll(double xAccel, double zAccel)
 {
   return atan2(-xAccel, zAccel) * RAD_TO_DEG;
 }
-
