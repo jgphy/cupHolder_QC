@@ -1,3 +1,9 @@
+#include <Adafruit_LSM303_U.h>
+
+#include <Adafruit_L3GD20_U.h>
+
+#include <Adafruit_L3GD20.h>
+
 
 #include <math.h> //included a math library for trig stuff
 #include <Adafruit_L3GD20.h>
@@ -8,14 +14,24 @@
 #include <Adafruit_Sensor.h>
 #include <Wire.h>
 
+
+double ChannelVal1, ChannelVal2,ChannelVal4, ChannelVal5;  //why were these started in loop()
+double ChannelVal3=1100;
+
 //the includes might make the the file not load in jay's computer, gotta figure that out
+double xRaw = 0;
+double yRaw = 0;
+double zRaw = 0;
 
-
-
+unsigned long lastTime = 0;
+unsigned long now;
 //first part comes straight from the gyroTest we dowloaded
 //Adafruit_L3GD20_Unified gyro = Adafruit_L3GD20_Unified(20);
-Adafruit_L3GD20 gyro;
 Adafruit_LSM303_Accel_Unified accel = Adafruit_LSM303_Accel_Unified(54321);
+Adafruit_L3GD20_Unified gyro = Adafruit_L3GD20_Unified(20);
+
+double accelMax;
+double accelMin;
 
 int dt= 10; 
 
@@ -26,8 +42,17 @@ int Pulse = 1100;
 
 double oldChannelVal1 = 0;
 double oldChannelVal2 = 0;
-double oldChannelVal3 = 0;
+double oldChannelVal3 = 1100;
 double oldChannelVal4 = 0;
+
+long xScaled = map(xRaw, accelMin, accelMax, -1000, 1000);
+  //might have to change this -1000 to 1000 cause i don't think its actually going to give us G's
+  //actually i don't think it'll matter, but it's late at this point
+long yScaled = map(yRaw, accelMin, accelMax, -1000, 1000);
+long zScaled = map(zRaw, accelMin, accelMax, -1000, 1000);
+float xAccel = xScaled / 1000.0;
+float yAccel = yScaled / 1000.0;
+float zAccel = zScaled / 1000.0;
 
 //arbitrary change before we add to motors
 //const double minChange = 50;
@@ -73,12 +98,32 @@ const double hoverAngle = 0;
 double lastPErr = 0;
 double pErrSum = 0;
 double pitchOut = 0;
-double kp = 1,ki=1,kp=1;
+double kp = 1,ki=1,kd=1;
 
 double lastRErr = 0;
 double rErrSum = 0;
 double rollOut = 0;
-double kp2 =1,ki2=1,kp2=1;
+double kp2 =1,ki2=1,kd2=1;
+
+
+int xGyro = 0;
+int yGyro  = 0;
+int zGyro = 0;
+
+double tiltangle = 0;
+double pitchAngle; 
+double rollAngle;
+
+double pitchDeg;
+double finalPitchAngle;
+double pError;
+double dPErr;
+
+double rollDeg;
+double finalRollAngle;
+double rError;
+double dRErr;
+double change;
 
 void setup() {
 
@@ -99,17 +144,18 @@ void setup() {
 
 
 
-  //makes sure that the gyroscope is plugged in
-  //We should think about adding a screen somewhere on the quadcopter to diagnose errors like this
-  if (!gyro.begin(gyro.L3DS20_RANGE_250DPS))
+  gyro.enableAutoRange(true);
+  if (!gyro.begin())
   {
-    Serial.println("You fucked up the wiring for the gyro...bitch");
+    //Serial.println("Oops ... unable to initialize the GYRO. Check your wiring!");
     while (1);
   }
+
+  /* Initialise the sensor */
   if(!accel.begin())
   {
     /* There was a problem detecting the ADXL345 ... check your connections */
-    Serial.println("Ooops, no LSM303 detected ... Check your wiring...bitch!");
+    //Serial.println("Ooops, no ACCELEROMETER detected ... Check your wiring!");
     while(1);
   }
 
@@ -127,7 +173,7 @@ void setup() {
     digitalWrite(motor3,HIGH);
     digitalWrite(motor4,HIGH);
     delayMicroseconds(1100);
-    digitalWrite(motor,LOW);
+    digitalWrite(motor1,LOW);
     digitalWrite(motor2,LOW);
     digitalWrite(motor3,LOW);
     digitalWrite(motor4,LOW);
@@ -140,47 +186,13 @@ void setup() {
 void loop() {
   now = millis();
   int timeChange = now - lastTime;
+  sensors_event_t event; 
+  gyro.getEvent(&event);
 
-  if(timeChange >=sampleRate)
-  {
-    //read accelerometer stuff
-    double xRaw = ReadAxis(xAccInput);
-    double yRaw = ReadAxis(yAccInput);
-    double zRaw = ReadAxis(zAccInput);
-
-    // Convert raw values to 'milli-Gs"
-    long xScaled = map(xRaw, xRawMin, xRawMax, -1000, 1000);
-    //might have to change this -1000 to 1000 cause i don't think its actually going to give us G's
-    //actually i don't think it'll matter, but it's late at this point
-    long yScaled = map(yRaw, yRawMin, yRawMax, -1000, 1000);
-    long zScaled = map(zRaw, zRawMin, zRawMax, -1000, 1000);
-    /*
-    map is a built in function map(value, fromLow, fromHigh, toLow, toHigh)
-    you guys can look it up but essentially remaps a value xRaw that is within some
-    range [xRawMin,xRawMax and scales it to another range [-1000,1000]
-    note: im going to use this later (attempt to) on for the receiver input to the output going
-    into the esc's , but i think theres a function constraint() that we should also
-    use if i want to do that
-    */
-    // re-scale to fractional Gs
-    float xAccel = xScaled / 1000.0;
-    float yAccel = yScaled / 1000.0;
-    float zAccel = zScaled / 1000.0;
-    /*
-    these values are scaled so their in 'g' units to get m/s^2 we'd have to divide
-    by 9.8...i think, i need a little bit more tome
-    xAccel=xAccel/9.8
-    yAccel=yAccel/9.8
-    zAccel=zAccel/9.8
-    */
-
-    //now the gyroscope stuff
-    //these should be in deg/s if not we have to convert them
-    //one of us should look
-    gyro.read();
-    int xGyro = gyro.data.x;
-    int yGyro  = gyro.data.y;
-    int zGyro = gyro.data.z;
+  sensors_event_t event2; 
+  accel.getEvent(&event2);
+  readAccel(&event2); //sets x- y- and z- raw;
+  readGyro(&event); // sets xGyro, yGyro and zGyro
 
     /*
     at this point im not sure if there are delays written into the gyro.read()
@@ -190,31 +202,41 @@ void loop() {
     */
 
     //ChannelVal3 is thrust for all motors, ChannelVal1 is left/right, ChannelVal2 is forward/back, ChannelVal4 yaw
-    double ChannelVal1, ChannelVal2, ChannelVal3,ChannelVal4, ChannelVal5;  //why were these started in loop()
     //int sensorConvert1, sensorConvert2, sensorConvert3, sensorConvert4; dont think i need these anymore
     ChannelVal1= pulseIn(pin,HIGH);
     ChannelVal2= pulseIn(pin2, HIGH);
     ChannelVal3= pulseIn(pin3, HIGH);
     ChannelVal4= pulseIn(pin4, HIGH);
-    ChannelVal5= pulseIn(pin5, HIGH);
-    double minChange = ChannelVal5;
+  //  ChannelVal5= pulseIn(pin5, HIGH);
+
+Serial.println("channelValues1:");
+Serial.println(ChannelVal1);
+Serial.println(ChannelVal2);
+Serial.println(ChannelVal3);
+Serial.println(ChannelVal4);
+    double minChange =0;
 
     //for this hover function im going to use ChannelVal1 as a throttle
     //1200 and 2000 come from the range we had for the esc before
-    ChannelVal1= map(ChannelVal1,channel1Min,channel1Max,1200,2000);
+    ChannelVal1= map(ChannelVal1,channel1Min,channel1Max,-800,800);
     ChannelVal1= constrain(ChannelVal1,-800,800);
 
-    ChannelVal2= map(ChannelVal2,channel2Min,channel2Max,1200,2000);
+    ChannelVal2= map(ChannelVal2,channel2Min,channel2Max,-800,800);
     ChannelVal2= constrain(ChannelVal2,-800,800);
 
-    ChannelVal3= map(ChannelVal3,channel3Min,channel3Max,1200,2000);
-    ChannelVal3= constrain(ChannelVal3,1200,2000);
+    ChannelVal3= map(ChannelVal3,channel3Min,channel3Max,1100,2000);
+    ChannelVal3= constrain(ChannelVal3,1100,2000);
 
-    ChannelVal4= map(ChannelVal4,channel4Min,channel4Max,1200,2000);
+    ChannelVal4= map(ChannelVal4,channel4Min,channel4Max,-800,800);
     ChannelVal4= constrain(ChannelVal4,-800,800);
+    Serial.println("channelValues:");
+Serial.println(ChannelVal1);
+Serial.println(ChannelVal2);
+Serial.println(ChannelVal3);
+Serial.println(ChannelVal4);
 
-    ChannelVal5= map(ChannelVal5,channel5Min,channel5Max,1200,2000);
-    ChannelVal5= constrain(ChannelVal5,-800,800);
+  //  ChannelVal5= map(ChannelVal5,channel5Min,channel5Max,1200,2000);
+  //  ChannelVal5= constrain(ChannelVal5,-800,800);
 
 
 
@@ -242,25 +264,38 @@ void loop() {
 
     //setting up all the stuff that i need to figure out at some point
     //first need to get angle from accelerometer
-    int tiltangle =0;
-    int pitchAngle = atan2(xAccel,sqrt((yAccel*yAccel)+(zAccel*zAccel)))*180.0/pi;
-    int rollAngle = atan2(-xAccel,zAccel)*180.0/pi;
+  tiltangle = 0;
+  pitchAngle = findPitch(xAccel, yAccel, zAccel);
+  rollAngle =  findRoll(xAccel, zAccel);
+  //these values are from the acceleremoter
 
-    //you can also get angle by usin the gyroscope
-    //only focusing on one axis at this point
+  dt = 10;//
+  pitchDeg = zGyro * dt; //angle using the gyroscope, not sure if this should be zGyro or another axis
+  //using a complementary filter
+  finalPitchAngle = .98*(tiltangle + pitchDeg) +.02*pitchAngle;
+  // now to "hover" we want our angle to be zero
+  pError = hoverAngle - finalPitchAngle;
+  pErrSum += pError;
+  dPErr = pError - lastPErr;
+  pitchOut = kp * pError;
+  lastPErr = pError;
 
-    int dt = 10;//
-    double deg=zGyro*dt;  //this doesnt actually give anything at this point
+  rollDeg = yGyro * dt; //not sure if its the correct axis
 
-    //using a complementary filter
-    double angle = .98*(tiltangle+deg) +.02*pitchAngle;
-    // now to "hover" we want our angle to be zero
-    double error =hoverAngle-angle; //error
-    errSum += error;                //sum of the errors, going to be used with the Integral part of the PID algorithm
-    double dErr = (error - lastErr);//diff of errors, going to be used with the derivative part
-    Output = kp * error; // + ki * errSum*sampleRate + kd * dErr/sampleRate;
-    lastErr = error;
-    lastTime = now;
+  //COMPLEMENTARY FILTER NEEDS TO BE REPLACED WITH KALMAN FILTER!!!!!
+  //using a complementary filter
+  finalRollAngle = .98*(tiltangle + rollDeg) +.02*rollAngle;
+
+
+  // now to "hover" we want our angle to be zero
+  rError = hoverAngle - finalRollAngle;
+  rErrSum += rError;
+  dRErr = rError - lastRErr;
+  rollOut = kp2 * rError;
+  lastRErr = rError;
+
+
+  lastTime = now;
 
 
 /*
@@ -288,10 +323,10 @@ M_n=L X T_n where L is distance from the center of mass (theoretically the cente
 */
     double M_1,M_2,M_3,M_4;
 
-    double w_1 = 1200;
-    double w_2 = 1200;
-    double w_3 = 1200;
-    double w_4 = 1200;
+    double w_1 = 1100;
+    double w_2 = 1100;
+    double w_3 = 1100;
+    double w_4 = 1100;
     double T_1 = ChannelVal3 * ChannelVal3;
     double T_2 = ChannelVal3 * ChannelVal3;
     double T_3 = ChannelVal3 * ChannelVal3;
@@ -327,12 +362,12 @@ if(abs(throttleIn - oldChannelVal3) > minChange)
       w_3 = 2000;
       w_4 = 2000;
     }
-    else if((w_1 - (change/4)) < 1200)
+    else if((w_1 - (change/4)) < 1100)
     {
-      w_1 = 1200;
-      w_2 = 1200;
-      w_3 = 1200;
-      w_4 = 1200;
+      w_1 = 1100;
+      w_2 = 1100;
+      w_3 = 1100;
+      w_4 = 1100;
     }
     else
     {
@@ -358,10 +393,10 @@ this shouldnt make the quadcopter change its position in space, just where the '
 //ChannelVal4 is mapped to (-800,800);
 //If statements check if the input pushes the value over 2000 or under 1200, If so we take the amount it took to reach the
 //threshold and add or subtract it from the other, non excessive, value
-if(abs(pitchIn) < 10  && abs(rollIn) < 10 && abs(yawIn) < 10)
-{
-  hover();
-}
+//if(abs(pitchIn) < 10  && abs(rollIn) < 10 && abs(yawIn) < 10)
+//{
+//  hover();
+//}
 if(abs(yawIn - oldChannelVal4) > minChange)
   {
     double yawChange = yawIn - oldChannelVal4;
@@ -375,14 +410,14 @@ if(abs(yawIn - oldChannelVal4) > minChange)
         w_4 -= newVal;
 
       }
-    else if(w_2 - (yawChange)/2 < 1200)
+    else if(w_2 - (yawChange)/2 < 1100)
       {
         double tempMin = w_2 - (yawChange)/2;
-        double newVal2 = 1200 - tempMin;
+        double newVal2 = 1100 - tempMin;
         w_1 += newVal2;
         w_3 += newVal2;
-        w_2 = 1200;
-        w_4 = 1200;
+        w_2 = 1100;
+        w_4 = 1100;
 
       }
     else
@@ -424,14 +459,14 @@ if(abs(rollIn - oldChannelVal2) > minChange)
       w_2 -= newVal;
       w_3 -= newVal;
     }
-    else if(w_2 - (rollChange)/2 < 1200)
+    else if(w_2 - (rollChange)/2 < 1100)
     {
       double tempMin = w_2 - (rollChange)/2;
-      double newVal2 = 1200 - tempMin;
+      double newVal2 = 1100 - tempMin;
       w_1 += newVal2;
       w_4 += newVal2;
-      w_2 = 1200;
-      w_3 = 1200;
+      w_2 = 1100;
+      w_3 = 1100;
 
     }
     else
@@ -442,7 +477,7 @@ if(abs(rollIn - oldChannelVal2) > minChange)
       w_3 -= (rollChange)/2;
 
     }
-    double newT = calculteTorque(w_1,w_2,w_3,w_4,pitchAngle,rollAngle);
+    double newT = calculateThrust(w_1,w_2,w_3,w_4,pitchAngle,rollAngle);
     double offsetT = 1 - newT;
     w_1 += offsetT/4;
     w_2 += offsetT/4;
@@ -476,14 +511,14 @@ if(abs(pitchIn - oldChannelVal1) > minChange)
       w_3 -= newVal;
       w_4 -= newVal;
     }
-  else if(w_2 - (pitchChange)/2 < 1200)
+  else if(w_2 - (pitchChange)/2 < 1100)
     {
       double tempMin = w_2 - (pitchChange)/2;
-      double newVal2 = 1200 - tempMin;
+      double newVal2 = 1100 - tempMin;
       w_1 += newVal2;
       w_2 += newVal2;
-      w_3 = 1200;
-      w_4 = 1200;
+      w_3 = 1100;
+      w_4 = 1100;
     }
   else
     {
@@ -492,7 +527,7 @@ if(abs(pitchIn - oldChannelVal1) > minChange)
       w_3 -= (pitchChange)/2;
       w_4 -= (pitchChange)/2;
     }
-    double newPitchT = calculteTorque(w_1,w_2,w_3,w_4,pitchAngle,rollAngle);
+    double newPitchT = calculateThrust(w_1,w_2,w_3,w_4,pitchAngle,rollAngle);
     double offsetPT = 1 - newPitchT;
     w_1 += offsetPT/4;
     w_2 += offsetPT/4;
@@ -518,10 +553,14 @@ or both... I actually think that it should be some more complicated combination 
 also if you guys have questions about dynamics things you should add it to this, even if we talk about it so that we dont forget and so that we can
 potentially explain them better.
 */
+Serial.println("motor Values");
+Serial.println(w_1);
+Serial.println(w_2);
+Serial.println(w_3);
+Serial.println(w_4);
 
 writeAll(motor1,w_1,motor2,w_2,motor3,w_3,motor4,w_4);
 
-  }
   //Writing to all the motors before the loop finishes
 
 }
@@ -557,23 +596,66 @@ void writeAll(int motor1, double w_1, int motor2, double w_2, int motor3, double
 
 //this read axis just gets 10 readings from the accelerometer then takes the average
 //to get something more accurare
-void readAccel()
+
+void readAccel(sensors_event_t* event)
 {
   long xReading = 0;
   long yReading = 0;
   long zReading = 0;
-  delay(1);
+  //delay(1);
 
   for (int i = 0; i < sampleSize; i++)
   {
-    sensors_event_t event;
-    accel.getEvent(&event);
-    xReading += event.acceleration.x;
-    yReading += event.acceleration.y;
-    zReading += event.acceleration.z;
+    //sensors_event_t event;
+    //accel.getEvent(&event);
+    xReading += event->acceleration.x;
+    yReading += event->acceleration.y;
+    zReading += event->acceleration.z;
   }
 
   xRaw = xReading/sampleSize;
   yRaw = yReading/sampleSize;
   zRaw = zReading/sampleSize;
+//  Serial.println("accel");
+//  Serial.println(xRaw);
+//  Serial.println(yRaw);
+//  Serial.println(zRaw);
 }
+void readGyro(sensors_event_t* event)
+{
+  long xReading = 0;
+  long yReading = 0;
+  long zReading = 0;
+  //delay(1);
+
+  for (int i = 0; i < sampleSize; i++)
+  {
+    //sensors_event_t event;
+    //accel.getEvent(&event);
+    xReading += event->gyro.x;
+    yReading += event->gyro.y;
+    zReading += event->gyro.z;
+    
+  }
+
+  xGyro = xReading * RAD_TO_DEG;
+  yGyro = yReading * RAD_TO_DEG;
+  zGyro = zReading * RAD_TO_DEG;
+  //Serial.println("gyro");
+//Serial.println(xGyro);
+//Serial.println(yGyro);
+//Serial.println(zGyro);
+}
+
+double findPitch(double xAccel, double yAccel, double zAccel)
+{
+  return atan2(xAccel,sqrt((yAccel*yAccel)+(zAccel*zAccel))) * RAD_TO_DEG;
+}
+
+
+
+double findRoll(double xAccel, double zAccel)
+{
+  return atan2(-xAccel, zAccel) * RAD_TO_DEG;
+}
+
