@@ -263,28 +263,39 @@ Serial.println(ChannelVal4);
 
     //setting up all the stuff that i need to figure out at some point
     //first need to get angle from accelerometer
-  tiltangle = 0;
-  pitchAngle = findPitch(xAccel, yAccel, zAccel);
-  rollAngle =  findRoll(xAccel, zAccel);
+  double tiltangle = 0;
+  double pitchAngle = findPitch(xAccel, yAccel, zAccel);
+  double rollAngle =  findRoll(xAccel, zAccel);
   //these values are from the acceleremoter
+
+  dt = 10;//
+  double pitchDeg = zGyro * dt; //angle using the gyroscope, not sure if this should be zGyro or another axis
+  //using a complementary filter
+  double finalPitchAngle = .98*(tiltangle + pitchDeg) +.02*pitchAngle;
+  // now to "hover" we want our angle to be zero
+  double pError = hoverAngle - finalPitchAngle;
+  pErrSum += pError;
+  double dPErr = pError - lastPErr;
+  pitchOut = kp * pError;
+  lastPErr = pError;
+
+  double rollDeg = yGyro * dt; //not sure if its the correct axis
+
+  //COMPLEMENTARY FILTER NEEDS TO BE REPLACED WITH KALMAN FILTER!!!!!
+  //using a complementary filter
+  double finalRollAngle = .98*(tiltangle + rollDeg) +.02*rollAngle;
+
+
+  // now to "hover" we want our angle to be zero
+  double rError = hoverAngle - finalRollAngle;
+  rErrSum += rError;
+  double dRErr = rError - lastRErr;
+  rollOut = kp2 * rError;
+  lastRErr = rError;
+
 
   lastTime = now;
 
-    //using a complementary filter
-    double finalPitchAngle = .98*(tiltangle+deg) +.02*pitchAngle;
-    // now to "hover" we want our angle to be zero
-    double error =hoverAngle-finalPitchAngle; //error
-    pErrSum += pError;                //sum of the errors, going to be used with the Integral part of the PID algorithm
-    double dPErr = (pError - lastPErr);//diff of errors, going to be used with the derivative part
-    Output = kp * error; // + ki * errSum*sampleRate + kd * dErr/sampleRate;
-    lastPErr = pError;
-    lastTime = now;
-
-
-    double rollDeg = yGyro * dt; //not sure if its the correct axis
-    //COMPLEMENTARY FILTER NEEDS TO BE REPLACED WITH KALMAN FILTER!!!!!
-    //using a complementary filter
-    double finalRollAngle = .98*(tiltangle + rollDeg) +.02*rollAngle;
 
 /*
                                                                 FLIGHT DYNAMICS:
@@ -517,7 +528,7 @@ if(abs(pitchIn - oldChannelVal1) > minChange)
     }
 
 
-    double newPitchT = calculteThrust(w_1,w_2,w_3,w_4,pitchAngle,rollAngle);
+    double newPitchT = calculateThrust(w_1,w_2,w_3,w_4,pitchAngle,rollAngle);
     double offsetPT = 1 - newPitchT;
     w_1 += offsetPT;
     w_2 += offsetPT;
