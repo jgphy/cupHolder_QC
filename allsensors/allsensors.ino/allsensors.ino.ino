@@ -7,6 +7,9 @@
 #include <Adafruit_BMP085_U.h> //Barometer
 
 
+int now = 0;
+int last = 0;
+
 //////////////////////////////////////////////
 /////////////////DECLARE SENSORS//////////////
 //////////////////////////////////////////////
@@ -39,6 +42,7 @@ void setup() {
 }
 
 void loop() {
+  now = millis();
     /* Get a new sensor event */ 
   sensors_event_t event; 
   gyro.getEvent(&event);
@@ -48,7 +52,7 @@ void loop() {
   Serial.print("Y: "); Serial.print(event.gyro.y); Serial.print("  ");
   Serial.print("Z: "); Serial.print(event.gyro.z); Serial.print("  ");
   Serial.println("rad/s ");
-  delay(500);
+  //delay(500);
 
   sensors_event_t event2; 
   accel.getEvent(&event2);
@@ -57,5 +61,8 @@ void loop() {
   Serial.print("X: "); Serial.print(event2.acceleration.x); Serial.print("  ");
   Serial.print("Y: "); Serial.print(event2.acceleration.y); Serial.print("  ");
   Serial.print("Z: "); Serial.print(event2.acceleration.z); Serial.print("  ");Serial.println("m/s^2 ");
-  delay(500);
+  //delay(500);
+  //last = millis();
+  Serial.println(now - last);
+  last = now;
 }
