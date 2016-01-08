@@ -1,60 +1,34 @@
-int pinOut1=2;
-int pinOut2=4;
-int pin=6;
-int pinOut3=12;
-int pinOut4=13;
-int Pulse=1100;
-
-const int channel3Min = 990;
-const int channel3Max = 1984;
-
+int channelIn1=3;
+int channelIn2=5;
+int channelIn3=6;
+int channelIn4=9;
 double channelInput;
 
 void setup() {
   analogReference(EXTERNAL);
   Serial.begin(9600);
 
-  Serial.println("starting loop");
-  pinMode(pin, INPUT);
-  pinMode(pinOut1, OUTPUT);
-  pinMode(pinOut2,OUTPUT);
-  pinMode(pinOut3,OUTPUT);
-  pinMode(pinOut4, OUTPUT);
+  pinMode(channelIn1, INPUT);
+  pinMode(channelIn2, INPUT);
+  pinMode(channelIn3, INPUT);
+  pinMode(channelIn4, INPUT);
 
-  for(int Arming_Time = 0; Arming_Time < 500; Arming_Time += 1)
-  {
-    digitalWrite(pinOut1,HIGH);
-    digitalWrite(pinOut2,HIGH);
-    digitalWrite(pinOut3,HIGH);
-    digitalWrite(pinOut4,HIGH);
-    delayMicroseconds(1100);
-    digitalWrite(pinOut1,LOW);
-    digitalWrite(pinOut2,LOW);
-    digitalWrite(pinOut3,LOW);
-    digitalWrite(pinOut4,LOW);
-    delay(20-(Pulse/1000));
-
-  }
 
 }
 
 void loop() {
-  Serial.print("poopie");
-  channelInput=pulseIn(pin, HIGH);
-  //Serial.println(channelInput);
-  Serial.println("DEEZ NUTS");
-  channelInput= map(channelInput,channel3Min,channel3Max,1100,2000);
-  channelInput= constrain(channelInput,1100,2000);
+double channel1=pulseIn(channelIn1,HIGH);
+double channel2=pulseIn(channelIn2,HIGH);
+double channel3=pulseIn(channelIn3,HIGH);
+double channel4=pulseIn(channelIn4,HIGH);
+Serial.println("chanel1: ");
+Serial.println(channel1);
+Serial.println("chanel2: ");
+Serial.println(channel2);
+Serial.println("chanel3: ");
+Serial.println(channel3);
+Serial.println("chanel4: ");
+Serial.println(channel4);
+delay(500);
 
-  Serial.println(channelInput);
-
-  digitalWrite(pinOut1,HIGH);
-  digitalWrite(pinOut2,HIGH);
-  digitalWrite(pinOut3,HIGH);
-  digitalWrite(pinOut4,HIGH);
-  delayMicroseconds(channelInput);
-  digitalWrite(pinOut1,LOW);
-  digitalWrite(pinOut2,LOW);
-  digitalWrite(pinOut3,LOW);
-  digitalWrite(pinOut4,LOW);
 }
