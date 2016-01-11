@@ -13,15 +13,21 @@ def main():
     fig=plt.figure()        
     plt.axis([0,1000,-2,2])    
     i=0
-    while (1):
 
-        temp_y = ser.readline()
-        x.append(i+5)
-        y.append(temp_y)
-        plt.scatter(i,temp_y)
-        plt.scatter(i,1,color='red')
-        plt.show()
-        plt.pause(0.0001) #Note this correction
-        i+=1
+    q = ""
+    r = []
+    s = []
+
+    while(1):
+        q = ser.readline()
+        r = q.split(';')
+        for j in range(len(r)):
+            temp_y = r[i]
+            x.append(i+5)
+            y.append(temp_y)
+            plt.scatter(i,temp_y, (j*.15, j*.15, j*.15))
+            plt.show()
+            plt.pause(0.0001) #Note this correction
+            i+=1
 
 main()
