@@ -90,7 +90,7 @@ const int channel2Max = 1984;
 
 const int channel3Min = 990;
 const int channel3Max = 1984;
-  
+
 const int channel4Min = 1000;
 const int channel4Max = 1984;
 
@@ -134,7 +134,7 @@ int motor1=2, motor2=4, motor3=12, motor4=13;                                 //
 ///////////////////////////////////////////////GENERAL VARIABLE STUFF//////////////////////////////////////////////////////////
 
 const float pi=3.14159;
-double M_1,M_2,M_3,M_4; 
+double M_1,M_2,M_3,M_4;
 
 // propeller speed
 double w_1 = 1100;    // 1100 = off
@@ -160,7 +160,7 @@ void setup() {
   analogReference(EXTERNAL);
   Serial.begin(9600);
 
-  
+
 
 //////////////////////////////////////////////////PIN STUFF////////////////////////////////////////////////////////
   //setup input pins
@@ -311,12 +311,12 @@ void loop() {
    // ChannelVal5= map(ChannelVal5,channel5Min,channel5Max,1200,2000);
    // ChannelVal5= constrain(ChannelVal5,-800,800);
 
-  
+
   if(abs(ChannelVal1) < 40)
   {
     ChannelVal1=0;
   }
-  
+
   if(abs(ChannelVal2) < 40)
   {
     ChannelVal2=0;
@@ -417,7 +417,7 @@ up and down(elevation on the z-axis):
 
     }
   }
-  
+
   if(throttleIn == 1100)
   {
     w_1 = 1100;
@@ -648,36 +648,168 @@ potentially explain them better.
 
 void writeAll(int motor1, double w_1, int motor2, double w_2, int motor3, double w_3, int motor4, double w_4)
 {
-  digitalWrite(motor1,HIGH);
-  delayMicroseconds(w_1);
-  digitalWrite(motor1,LOW);
+  int wValues[4] = {w_1,w_2,w_3,w_4};
+  int low = 0;
+  int high = 3;
+  int mid = 1;
+  int maskEnc = 000011;
+  int maskOrig = 111100;
+  double add_1_mask = 111101;
+  double add_2_mask = 111102;
+  double add_3_mask = 111103;
+   
+  //So we can keep track of which delay goes with which motor
+  int encodedW_1 = w_1 * 100;
+  int encodedW_2 = (w_2 * 100);
+  int encodedW_3 = (w_3 * 100);
+  int encodedW_4 = (w_4 * 100);
+  int encValues[4] = {encodedW_1,encodedW_2,encodedW_3,encodedW_4};
+  Serial.println("encValues:");
+  for(int i = 0; i < 4; i++)
+  {
+    Serial.println(encValues[i]);
+  }
+  Serial.println("-------------------");
 
+  int origValues[4];
 
-  digitalWrite(motor2,HIGH);
-  delayMicroseconds(w_2);
-  digitalWrite(motor2,LOW);
+  mergeSort(encValues,low,mid,high);
+  Serial.println("encValues after sort:");
+  for(int i = 0; i < 4; i++)
+  {
+    Serial.println(encValues[i]);
+  }
+  int orderedMotors[4];
+  for(int i = 0; i < 4; i++)
+  {
+    if((encValues[i] | maskEnc) == 00)
+    {
+      origValues[i] = ((encValues[i] | maskOrig) >> 2);
+      orderedMotors[i] = motor1;
+    }
+    if((encValues[i] | maskEnc) == 01)
+    {
+      origValues[i] = ((encValues[i] | maskOrig) >> 2);
+      orderedMotors[i] = motor2;
+    }
+    if((encValues[i] | maskEnc) == 02)
+    {
+      origValues[i] = ((encValues[i] | maskOrig) >> 2);
+      orderedMotors[i] = motor3;
+    }
+    if((encValues[i] | maskEnc) == 03)
+    {
+      origValues[i] = ((encValues[i] | maskOrig) >> 2);
+      orderedMotors[i] = motor4;
+    }
+  }
+  Serial.println("orderedMotors:");
+  for(int i = 0; i < 4; i++)
+  {
+    Serial.println(orderedMotors[i]);
+  }
+  Serial.println("-----------------");
+  Serial.println("origValues Sorted");
+  for(int i = 0; i < 4; i++)
+  {
+    Serial.println(origValues[i]);
+  }
+  Serial.println("-------------------");
+  
+  int tempDelay = origValues[0];
+  for(int i = 0; i < 4; i++)
+  {
+    delayMicroseconds(tempDelay);
+    digitalWrite(orderedMotors[i], LOW);
+    if(i != 3)
+    {
+      tempDelay = origValues[i+1] - origValues[i];
+    }
+  }
 
-  digitalWrite(motor3,HIGH);
-  delayMicroseconds(w_3);
-  digitalWrite(motor3,LOW);
-
-  digitalWrite(motor4,HIGH);
-  delayMicroseconds(w_4);
-  digitalWrite(motor4,LOW);
+  // digitalWrite(motor1,HIGH);
+  // delayMicroseconds(w_1);
+  // digitalWrite(motor1,LOW);
+  //
+  //
+  // digitalWrite(motor2,HIGH);
+  // delayMicroseconds(w_2);
+  // digitalWrite(motor2,LOW);
+  //
+  // digitalWrite(motor3,HIGH);
+  // delayMicroseconds(w_3);
+  // digitalWrite(motor3,LOW);
+  //
+  // digitalWrite(motor4,HIGH);
+  // delayMicroseconds(w_4);
+  // digitalWrite(motor4,LOW);
 }
- 
+
  double calculateThrust(double w_1, double w_2, double w_3, double w_4, double pitchAngle, double rollAngle)
  {
    double thrust = ((w_1 * w_1 + w_2 * w_2 + w_3 * w_3 + w_4 * w_4) * cos(pitchAngle)) * cos(rollAngle);
    return thrust;
  }
 
+ void partition(int arr[],int low,int high)
+ {
+    int mid;
+
+    if(low<high){
+         mid=(low+high)/2;
+         partition(arr,low,mid);
+         partition(arr,mid+1,high);
+         mergeSort(arr,low,mid,high);
+    }
+}
+
+#define MAX 50
+void mergeSort(int arr[],int low,int mid,int high)
+{
+    int i,m,k,l,temp[MAX];
+
+    l=low;
+    i=low;
+    m=mid+1;
+
+    while((l<=mid)&&(m<=high)){
+
+         if(arr[l]<=arr[m]){
+             temp[i]=arr[l];
+             l++;
+         }
+         else{
+             temp[i]=arr[m];
+             m++;
+         }
+         i++;
+    }
+
+    if(l>mid){
+         for(k=m;k<=high;k++){
+             temp[i]=arr[k];
+             i++;
+         }
+    }
+    else{
+         for(k=l;k<=mid;k++){
+             temp[i]=arr[k];
+             i++;
+         }
+    }
+
+    for(k=low;k<=high;k++){
+         arr[k]=temp[k];
+    }
+}
+
+
 
 //this read axis just gets 10 readings from the accelerometer then takes the average
 //to get something more accurare
 
 
-////////////////////////////////////////////////SENSOR STUFF//////////////////////////////////////////////////////////// 
+////////////////////////////////////////////////SENSOR STUFF////////////////////////////////////////////////////////////
 //
 //void readAccel(sensors_event_t* event)
 //{
