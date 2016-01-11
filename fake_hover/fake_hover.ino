@@ -173,7 +173,6 @@ void setup() {
 // Initialise accel
   if(!accel.begin())
   {
-    
     Serial.println("Ooops, no ACCELEROMETER detected ... Check your wiring!");
     while(1);
   }
@@ -275,15 +274,7 @@ void loop() {
 
   lastTime = now;
 
-  if(throttleIn == 1100)
-  {
-    w_1=1100;
-    w_2=1100;
-    w_3=1100;
-    w_4=1100;
-  }
-
-  else if(abs(throttleIn - oldChannelVal3) > minChange)
+  if(abs(throttleIn - oldChannelVal3) > minChange)
     {
       change = throttleIn - oldChannelVal3;
 //      Serial.println("change:");
@@ -313,7 +304,15 @@ void loop() {
   
       }
     }
-    
+  
+  if(throttleIn == 1100)
+  {
+    w_1 = 1100;
+    w_2 = 1100;
+    w_3 = 1100;
+    w_4 = 1100;
+  }
+  
   w_1 += w_1 * rollOut / 2;
   w_4 += w_4 * rollOut / 2;
 

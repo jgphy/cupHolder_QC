@@ -48,6 +48,8 @@ const float pi=3.14159;
 
 unsigned long lastTime = 0;
 unsigned long now;
+unsigned long late;
+unsigned long temp;
 
 double xRaw = 0;
 double yRaw = 0;
@@ -101,6 +103,8 @@ double rError;
 double dRErr;
 double change;
 
+int skip = 0;
+
 void setup() {
 
   analogReference(EXTERNAL);
@@ -136,12 +140,16 @@ void setup() {
   accelMax = sensor.max_value;
   accelMin = sensor.max_value;
 
+  delay(10000);
   //Serial.println("Starting Loop");
 }
 
 
 
 void loop() {
+  now = millis();
+
+  
   //////////////////// SENSOR EVENT SETUP /////////////////
   ////////////////////// V IMPORTANT //////////////////////
   ////////////////////// DONT DELETE //////////////////////
@@ -197,9 +205,9 @@ void loop() {
   //these values are from the acceleremoter
 
   dt = 10;//
-  pitchDeg = yGyro * dt; //angle using the gyroscope, not sure if this should be zGyro or another axis
+  pitchDeg = yGyro * temp; //angle using the gyroscope, not sure if this should be zGyro or another axis
   
-  yawDeg = zGyro * dt;
+  yawDeg = zGyro * temp;
 
   //using a complementary filter
   finalPitchAngle = .98*(tiltangle + pitchDeg) +.02*pitchAngle;
@@ -210,7 +218,7 @@ void loop() {
   pitchOut = kp * pError;
   lastPErr = pError;
 
-  rollDeg = xGyro * dt; //not sure if its the correct axis
+  rollDeg = xGyro * temp; //not sure if its the correct axis
 
   //COMPLEMENTARY FILTER NEEDS TO BE REPLACED WITH KALMAN FILTER!!!!!
   //using a complementary filter
@@ -228,30 +236,19 @@ void loop() {
 //  Serial.print(rError);
 
   lastTime = now;
-  Serial.println("-------------------------------------------");
-  Serial.print("xAccel: ");
-  Serial.print(xRaw);
-  Serial.print("; yAccel: ");
-  Serial.print(yRaw);
-  Serial.print("; zAccel: ");
-  Serial.println(zRaw);
-  Serial.print("xGryo:  ");
-  Serial.print(xGyro);
-  Serial.print("; yGyro:  ");
-  Serial.print(yGyro);
-  Serial.print("; zGyro:  ");
-  Serial.println(zGyro);
-  Serial.print("RollANGLE:   ");
-  Serial.print(rollAngle);
-  Serial.print("; PitchANGLE:  ");
-  Serial.println(pitchAngle);
-  Serial.print("Roll:   ");
-  Serial.print(rollOut);
-  Serial.print("; Pitch:  ");
-  Serial.print(pitchOut);
-  Serial.print("; Yaw:    ");
+  //Serial.println("-------------------------------------------");
+  //Serial.print("");
+  //if (skip % 100 == 0)
+  
+  Serial.print(rollDeg);
+  Serial.print(";");
+  Serial.print(pitchDeg);
+  Serial.print(";");
   Serial.println(yawDeg);
-  delay(1000);
+   //delay(1000);
+
+   late = millis();
+   temp = late - now;
 }
 
 
