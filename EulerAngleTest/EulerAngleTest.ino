@@ -105,6 +105,8 @@ double change;
 
 int skip = 0;
 
+int tempo = 0;
+
 void setup() {
 
   analogReference(EXTERNAL);
@@ -140,7 +142,7 @@ void setup() {
   accelMax = sensor.max_value;
   accelMin = sensor.max_value;
 
-  delay(10000);
+  //delay(1000);
   //Serial.println("Starting Loop");
 }
 
@@ -167,6 +169,7 @@ void loop() {
   ////Serial.println("right before loop ");
   //read accelerometer stuff
   readAccel(&event2); //sets x- y- and z- raw;
+  //else tempo += temp;
   //Serial.println("Scaling");
 
 //not sure about this stuff. getting rid of it because it's giving us all 0's
@@ -186,7 +189,8 @@ void loop() {
   
   //JUAN LOOK: they're in rad/s, so i converted them in the readGyro function
   //that I wrote to match readAccel()
-  readGyro(&event); // sets xGyro, yGyro and zGyro
+  if(tempo >= dt) readGyro(&event); // sets xGyro, yGyro and zGyro
+  else tempo += temp;
   //Serial.println("probing Gyro");
 
 //  kp  = channelVal5;
@@ -205,9 +209,9 @@ void loop() {
   //these values are from the acceleremoter
 
   dt = 10;//
-  pitchDeg = yGyro * temp; //angle using the gyroscope, not sure if this should be zGyro or another axis
+  pitchDeg += xGyro * .01;  //angle using the gyroscope, not sure if this should be zGyro or another axis
   
-  yawDeg = zGyro * temp;
+  yawDeg += zGyro * .01;
 
   //using a complementary filter
   finalPitchAngle = .98*(tiltangle + pitchDeg) +.02*pitchAngle;
@@ -218,7 +222,7 @@ void loop() {
   pitchOut = kp * pError;
   lastPErr = pError;
 
-  rollDeg = xGyro * temp; //not sure if its the correct axis
+  rollDeg += yGyro * .01; //not sure if its the correct axis
 
   //COMPLEMENTARY FILTER NEEDS TO BE REPLACED WITH KALMAN FILTER!!!!!
   //using a complementary filter
@@ -242,9 +246,9 @@ void loop() {
   
   Serial.print(rollAngle);
   Serial.print(";");
-  Serial.print(pitchAngle);
+  Serial.print(xRaw);
   Serial.print(";");
-  Serial.println(yawDeg);
+  Serial.println(zRaw);
    //delay(1000);
 
    late = millis();
@@ -278,18 +282,20 @@ void readAccel(sensors_event_t* event)
   long zReading = 0;
   //delay(1);
 
-  for (int i = 0; i < sampleSize; i++)
-  {
+  //for (int i = 0; i < sampleSize; i++)
+  //{
     //sensors_event_t event;
     //accel.getEvent(&event);
-    xReading += event->acceleration.x;
-    yReading += event->acceleration.y;
-    zReading += event->acceleration.z;
-  }
+  xRaw = event->acceleration.x;
+  yRaw = event->acceleration.y;
+  zRaw = event->acceleration.z; //values in 10's of Gs
 
-  xRaw = xReading/sampleSize;
-  yRaw = yReading/sampleSize;
-  zRaw = zReading/sampleSize;
+  //convert to G's
+  xRaw = xRaw / 10;
+  yRaw = yRaw / 10;
+  zRaw = zRaw / 10;
+
+  
 //  Serial.println("accel");
 //  Serial.println(xRaw);
 //  Serial.println(yRaw);
