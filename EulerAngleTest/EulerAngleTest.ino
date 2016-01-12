@@ -240,9 +240,9 @@ void loop() {
   //Serial.print("");
   //if (skip % 100 == 0)
   
-  Serial.print(rollDeg);
+  Serial.print(rollAngle);
   Serial.print(";");
-  Serial.print(pitchDeg);
+  Serial.print(pitchAngle);
   Serial.print(";");
   Serial.println(yawDeg);
    //delay(1000);
