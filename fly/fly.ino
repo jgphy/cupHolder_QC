@@ -1,6 +1,9 @@
+#include <Wire.h>
+
 #include <Adafruit_LSM303_U.h>
+
 #include <Adafruit_L3GD20_U.h>
-#include <Adafruit_L3GD20.h>
+//#include <Adafruit_L3GD20.h>
 #include <math.h>
 
 
@@ -648,102 +651,75 @@ potentially explain them better.
 
 void writeAll(int motor1, double w_1, int motor2, double w_2, int motor3, double w_3, int motor4, double w_4)
 {
-  int wValues[4] = {w_1,w_2,w_3,w_4};
+  Serial.println(motor1);
+  Serial.println(motor2);
+  Serial.println(motor3);
+  Serial.println(motor4);
+  //double wValues[4] = {w_1,w_2,w_3,w_4};
+  double wValues[4] = {1190,1830,1430,1439};
   int low = 0;
   int high = 3;
   int mid = 1;
-  int maskEnc = 000011;
-  int maskOrig = 111100;
-  double add_1_mask = 111101;
-  double add_2_mask = 111102;
-  double add_3_mask = 111103;
-   
-  //So we can keep track of which delay goes with which motor
-  int encodedW_1 = w_1 * 100;
-  int encodedW_2 = (w_2 * 100);
-  int encodedW_3 = (w_3 * 100);
-  int encodedW_4 = (w_4 * 100);
-  int encValues[4] = {encodedW_1,encodedW_2,encodedW_3,encodedW_4};
-  Serial.println("encValues:");
-  for(int i = 0; i < 4; i++)
-  {
-    Serial.println(encValues[i]);
-  }
-  Serial.println("-------------------");
 
-  int origValues[4];
-
-  mergeSort(encValues,low,mid,high);
-  Serial.println("encValues after sort:");
-  for(int i = 0; i < 4; i++)
+  double encValues[4];
+  for(int i =0; i < 4; i++)
   {
-    Serial.println(encValues[i]);
+    encValues[i] = ((wValues[i] * 100) + i);
   }
+
+  double origValues[4] = {0,0,0,0};
+
+  partition(encValues,low,high);
+
   int orderedMotors[4];
   for(int i = 0; i < 4; i++)
   {
-    if((encValues[i] | maskEnc) == 00)
-    {
-      origValues[i] = ((encValues[i] | maskOrig) >> 2);
-      orderedMotors[i] = motor1;
-    }
-    if((encValues[i] | maskEnc) == 01)
-    {
-      origValues[i] = ((encValues[i] | maskOrig) >> 2);
-      orderedMotors[i] = motor2;
-    }
-    if((encValues[i] | maskEnc) == 02)
-    {
-      origValues[i] = ((encValues[i] | maskOrig) >> 2);
-      orderedMotors[i] = motor3;
-    }
-    if((encValues[i] | maskEnc) == 03)
-    {
-      origValues[i] = ((encValues[i] | maskOrig) >> 2);
-      orderedMotors[i] = motor4;
-    }
+    for(int k =0; k < 4;k++)
+      {
+        if(abs(((wValues[i] * 100.0) - encValues[k])) == 0)
+        {
+          origValues[k] = wValues[i];
+          orderedMotors[k] = motor1;
+        }
+        if(abs(((wValues[i] * 100.0) - encValues[k])) == 1)
+        {
+          origValues[k] = wValues[i];
+          orderedMotors[k] = motor2;
+        }
+        if(abs(((wValues[i] * 100.0) - encValues[k])) == 2)
+        {
+          origValues[k] = wValues[i];
+          orderedMotors[k] = motor3;
+        }
+        if(abs(((wValues[i] * 100.0) - encValues[k])) == 3)
+        {
+          origValues[k] = wValues[i];
+          orderedMotors[k] = motor4;
+        }
+      }
   }
-  Serial.println("orderedMotors:");
+ 
   for(int i = 0; i < 4; i++)
   {
     Serial.println(orderedMotors[i]);
   }
-  Serial.println("-----------------");
-  Serial.println("origValues Sorted");
-  for(int i = 0; i < 4; i++)
+  for(int i =0; i < 4; i++)
   {
     Serial.println(origValues[i]);
   }
-  Serial.println("-------------------");
-  
   int tempDelay = origValues[0];
   for(int i = 0; i < 4; i++)
   {
     delayMicroseconds(tempDelay);
+    Serial.println(tempDelay);
     digitalWrite(orderedMotors[i], LOW);
     if(i != 3)
     {
-      tempDelay = origValues[i+1] - origValues[i];
+      tempDelay = (origValues[i+1] - origValues[i]);
     }
   }
-
-  // digitalWrite(motor1,HIGH);
-  // delayMicroseconds(w_1);
-  // digitalWrite(motor1,LOW);
-  //
-  //
-  // digitalWrite(motor2,HIGH);
-  // delayMicroseconds(w_2);
-  // digitalWrite(motor2,LOW);
-  //
-  // digitalWrite(motor3,HIGH);
-  // delayMicroseconds(w_3);
-  // digitalWrite(motor3,LOW);
-  //
-  // digitalWrite(motor4,HIGH);
-  // delayMicroseconds(w_4);
-  // digitalWrite(motor4,LOW);
 }
+
 
  double calculateThrust(double w_1, double w_2, double w_3, double w_4, double pitchAngle, double rollAngle)
  {
@@ -751,7 +727,7 @@ void writeAll(int motor1, double w_1, int motor2, double w_2, int motor3, double
    return thrust;
  }
 
- void partition(int arr[],int low,int high)
+ void partition(double arr[],int low,int high)
  {
     int mid;
 
@@ -764,9 +740,10 @@ void writeAll(int motor1, double w_1, int motor2, double w_2, int motor3, double
 }
 
 #define MAX 50
-void mergeSort(int arr[],int low,int mid,int high)
-{
-    int i,m,k,l,temp[MAX];
+void mergeSort(double arr[],int low,int mid,int high)
+{ 
+    int i,m,k,l;
+    double temp[MAX];
 
     l=low;
     i=low;
