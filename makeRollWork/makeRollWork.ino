@@ -24,6 +24,10 @@ double xAccel = 0;
 double yAccel = 0;
 double zAccel = 0;
 
+double errorSum=0;
+double lastRollOut=0;
+double kid;
+double changeRoll=0;
 ////////////////////////////////////////////////////////////////
 ////////////////////ANGLE PROCESSING STUFF///////////////////////
 ////////////////////////////////////////////////////////////////
@@ -108,16 +112,16 @@ const int channel1Max = 1984;
 const int channel2Min = 990;
 const int channel2Max = 1984;
 
-const int channel3Min = 990;
+const int channel3Min = 1000;
 const int channel3Max = 1984;
 
 const int channel4Min = 1018;
 const int channel4Max = 1984;
 
-const int channel5Min = 989;
+const int channel5Min = 999;
 const int channel5Max = 1984;
 
-const int channel6Min = 990;
+const int channel6Min = 999;
 const int channel6Max = 1977;
 
 unsigned long lastTime = 0;
@@ -146,6 +150,7 @@ const double minChange = 0; //min change in throttle
 ////////////////////////////////////////////////////////////////
 
 void setup() {
+
 
   analogReference(EXTERNAL);
   Serial.begin(9600);
@@ -206,6 +211,10 @@ void setup() {
 ////////////////////////////////////////////////////////////////
 
 void loop() {
+
+  now=millis();
+  double ElapsedTime= now-lastTime;
+
   //////////////////// SENSOR EVENT SETUP /////////////////
   ////////////////////// V IMPORTANT //////////////////////
   ////////////////////// DONT DELETE //////////////////////
@@ -225,63 +234,55 @@ void loop() {
   readGyro(&event);   // sets xGyro, yGyro and zGyro
 
   channelVal3 = pulseIn(pin3, HIGH); //read throttle
-  //channelVal5= pulseIn(pin5, HIGH);  //kp value for pitch angle PID
+  channelVal5= pulseIn(pin2, HIGH);  //kp value for pitch angle PID
   channelVal6= pulseIn(pin, HIGH);  //kp value for roll angle  PID
 
   channelVal3= map(channelVal3,channel3Min,channel3Max,1100,2000);
   channelVal3= constrain(channelVal3,1100,2000);
 
-//  channelVal5 = map(channelVal5, channel5Min, channel5Max, 0, 2);   //0 to 2 are just numbers that i picked, probably need to manually check these
-//  channelVal5 = constrain(channelVal5, 0, 2);
+  channelVal5 = map(channelVal5, channel5Min, channel5Max, 0, 2000);   //0 to 2 are just numbers that i picked, probably need to manually check these
+  channelVal5 = constrain(channelVal5, 0.0, 2000);
+  channelVal5 = channelVal5/1000.0;
   channelVal6 = map(channelVal6, channel6Min, channel6Max, 0.0, 2000.0);
   channelVal6 = constrain(channelVal6, 0.0, 2000.0);
   channelVal6=channelVal6/1000.0;
-//  kp  = channelVal5;
+
+  dt= channelVal5;
   kp2 = channelVal6;
-  Serial.println("kp2");
-  Serial.println(kp2);
+//   Serial.println("dt");
+//   Serial.println(dt);
 
   throttleIn = channelVal3;
-  Serial.println("throttleIn");
-  Serial.println(throttleIn);
 
-//first thing to do is to use the accelerometer and gyroscope to get an orientation
-//the second thing to do is use that orientation and change the ouput of one of the motors
-//which is the PID algorith that im first just going to write as a P algorithm
-//but i'll do that tomorrow
-
-//first need to get the pitch and the roll angles
-//NOTE:QUADCOPTER FRONT IS FACING +X DIRECTION LIKE THE LITTLE PICTURE ON THE SENSOR
 
   tiltangle = 0;
   pitchAngle = findPitch(xAccel, yAccel, zAccel);
   rollAngle =  findRoll(xAccel, zAccel);
-
-  pitchDeg = yGyro * dt;
-  finalPitchAngle = .98*(tiltangle + pitchDeg) +.02*pitchAngle;
-  //To "hover" we want our angle to be zero
-  pError = hoverAngle - finalPitchAngle;
-  pErrSum += pError;
-  dPErr = pError - lastPErr;
-  pitchOut = kp * pError;
-  lastPErr = pError;
-
-  rollDeg = xGyro * dt;
-  //COMPLEMENTARY FILTER NEEDS TO BE REPLACED WITH KALMAN FILTER!!!!!
-  //using a complementary filter
+//  Serial.println("ElapsedTIme");
+//  Serial.println(ElapsedTime);
+ 
+  if (ElapsedTime >= dt){
   finalRollAngle = rollAngle;
-  // now to "hover" we want our angle to be zero
-//  Serial.println("finalRollAngle");
-//  Serial.println(finalRollAngle);
+
   rError = hoverAngle - finalRollAngle;
-  rErrSum += rError;
-  dRErr = rError - lastRErr;
-  rollOut = kp2 * rError;
+  rErrSum += rError*ElapsedTime;
+  dRErr = rError - lastRErr/ElapsedTime;
+  rollOut = kp2 * rError;// +kid*rErrSum;
+//  Serial.println("rollout");
+  Serial.println(rollOut);
+  lastRErr = rError;
 //  Serial.println("rollout");
 //  Serial.println(rollOut);
-  lastRErr = rError;
+  lastTime=now;
+  
+  changeRoll=rollOut-lastRollOut;
+  lastRollOut=rollOut;
+  }
+  else{
+    rollOut=0;
+//    Serial.println("here");
+  }
 
-  lastTime = now;
 
   if(abs(throttleIn - oldChannelVal3) > minChange)
     {
@@ -322,10 +323,11 @@ void loop() {
     w_4 = 1100;
   }
   
+//  Serial.println("change in Throttle");
+//  Serial.println(15*rollOut);
 //  w_1 += w_1 * rollOut / 4;
-  w_4 -= 15 * rollOut;
-
-  w_2 += 15 * rollOut;
+//  w_4 -= 4 * rollOut;
+  w_2 +=5*changeRoll;
 //  w_3 += -w_3 * rollOut /4;
 //
 //  w_1 += w_1 * pitchOut / 4;
@@ -361,7 +363,6 @@ void loop() {
   w_3 = 1100;  
   
   writeAll(motor1, w_1, motor2, w_2, motor3, w_3, motor4, w_4);
-
 }
 
 void writeAll(int motor1, double w_1, int motor2, double w_2, int motor3, double w_3, int motor4, double w_4)
@@ -372,7 +373,7 @@ void writeAll(int motor1, double w_1, int motor2, double w_2, int motor3, double
  delayMicroseconds(w_1);
  digitalWrite(motor1,LOW);
 
- Serial.println(w_2);
+ // Serial.println(w_2);
  digitalWrite(motor2,HIGH);
  delayMicroseconds(w_2);
  digitalWrite(motor2,LOW);
@@ -440,83 +441,3 @@ void readGyro(sensors_event_t* event)
 //Serial.println(yGyro);
 //Serial.println(zGyro);
 }
-
-/////////////////////////////////////////////////////
-/////////////      KALMAN FILTER      ///////////////
-/////////////////////////////////////////////////////
-
-// float error = 0; //initial value
-
-// float gyroBias = 0.003;
-// float accelVar = 0.001;
-// //these are suggested,
-// //supposedly well balanced values for these variables
-
-// float P [2][2] = {{1000., 0.}, {0., 1000.}};
-// //# initial uncertainty matrix
-
-// float R = 0.03;
-// //# measurement uncertainty -- some suggested constant correlated with how accurate our selnsors are. may be non-optimal
-
-// float K [2] = {0, 0};
-// //kalman gain gets updated over time to sshift weight to accelerometer, and away from the gyroscope
-
-// float S; //some intermediate value in the algorithm
-
-// float rate = 0;
-//angular velocity according to gyro
-
-/////////////////////////////////////////
-/*
-please feed:
-
-accelIn -> ANGLE according to accelerometer
-
-gyroIn -> Angular VELOCITY according to gyroscope
-
-angle -> whatever the latest value we have for the angle in this pair of axes is
-*/
-/////////////////////////////////////////
-
-// void kalman(float &accelIn, float &gyroIn, float &angle)
-// {
-//     // PREDICTION STEP
-//     rate = gyroIn - gyroBias;  //offset accounting for bias
-//     angle += dt * rate;
-//     //^^^ predicts angle based on millis().
-//     //might have to call millis() again to see if it gets more accurate.
-//     //leaving as- is for now, or just forgo this altogether
-
-//     P[0][0] += dt * (dt*P[1][1] - P[0][1] - P[1][0] + accelVar);
-//     P[0][1] -= dt * P[1][1];
-//     P[1][0] -= dt * P[1][1];
-//     P[1][1] += gyroBias * dt;
-//     //^^ predicts uncertainty matrix to account for time passed
-
-
-//     // MEASUREMENT STEP
-//     error = accelIn - angle;
-//     // difference between latest measured value and current angle value
-
-//     S = P[0][0] + R;
-//     //some intermediate step needed for kalman gain...
-
-//     K[0] = P[0][0] / S;
-//     K[1] = P[1][0] / S;
-//     // updates kalman gain.
-
-//     //UPDATE STEP
-//     angle += K[0] * error;
-//     gyroBias += K[1] * error;
-//     //updates abgle and gyroBias based on gain and error
-
-//     float P00_temp = P[0][0];
-//     float P01_temp = P[0][1];
-
-//     P[0][0] -= K[0] * P00_temp;
-//     P[0][1] -= K[0] * P01_temp;
-//     P[1][0] -= K[1] * P00_temp;
-//     P[1][1] -= K[1] * P01_temp;
-//     // Updates uncertainty matrix
-//     //based on gain and predicted uncertainty
-//}
