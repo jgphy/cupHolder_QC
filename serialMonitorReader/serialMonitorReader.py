@@ -5,7 +5,8 @@ from drawnow import *
 
 
 def figure(y):
-    plt.plot(y,'ro-'
+    plt.plot(y,'ro-')
+
 
 def main():
 
