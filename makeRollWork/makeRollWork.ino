@@ -274,9 +274,6 @@ void loop() {
 //  Serial.println("rollout");
 //  Serial.println(rollOut);
   lastTime=now;
-  
-  changeRoll=rollOut-lastRollOut;
-  lastRollOut=rollOut;
   }
   else{
     rollOut=0;
@@ -327,7 +324,7 @@ void loop() {
 //  Serial.println(15*rollOut);
 //  w_1 += w_1 * rollOut / 4;
 //  w_4 -= 4 * rollOut;
-  w_2 +=5*changeRoll;
+  w_2 +=rollOut;
 //  w_3 += -w_3 * rollOut /4;
 //
 //  w_1 += w_1 * pitchOut / 4;
