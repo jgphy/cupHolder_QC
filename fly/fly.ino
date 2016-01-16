@@ -655,8 +655,8 @@ void writeAll(int motor1, double w_1, int motor2, double w_2, int motor3, double
   Serial.println(motor2);
   Serial.println(motor3);
   Serial.println(motor4);
-  //double wValues[4] = {w_1,w_2,w_3,w_4};
-  double wValues[4] = {1190,1830,1430,1439};
+  double wValues[4] = {w_1,w_2,w_3,w_4};
+  //double wValues[4] = {1190,1830,1430,1439};
   int low = 0;
   int high = 3;
   int mid = 1;
